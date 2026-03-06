@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useAuth } from "@/contexts/AuthContext";
 
 // ─── Floating finance stat pill ──────────────────────────────────────────────
 function StatPill({
@@ -29,11 +30,7 @@ function MiniChart() {
   return (
     <div className="absolute bottom-0 left-0 right-0 h-32 flex items-end gap-1.5 px-8 opacity-20">
       {bars.map((h, i) => (
-        <div
-          key={i}
-          className="flex-1 bg-white rounded-t-lg"
-          style={{ height: `${h}%`, animationDelay: `${i * 0.1}s` }}
-        />
+        <div key={i} className="flex-1 bg-white rounded-t-lg" style={{ height: `${h}%` }} />
       ))}
     </div>
   );
@@ -77,22 +74,20 @@ function PasswordInput({
 
 // ─── Login Page ───────────────────────────────────────────────────────────────
 export default function LoginPage() {
-  const [email, setEmail] = useState("");
+  const [email, setEmail]       = useState("");
   const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [googleLoading, setGoogleLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const { login, loginWithGoogle, loading, error, clearError } = useAuth();
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-    // TODO: connect to your auth service
-    setTimeout(() => setLoading(false), 2000);
+    clearError();
+    await login(email, password);
   };
 
   const handleGoogle = () => {
-    setGoogleLoading(true);
-    // TODO: trigger Google OAuth
-    setTimeout(() => setGoogleLoading(false), 2000);
+    clearError();
+    loginWithGoogle();
   };
 
   return (
@@ -105,10 +100,7 @@ export default function LoginPage() {
         @keyframes float-b { 0%,100%{transform:translateY(0px) rotate(0deg)} 50%{transform:translateY(-14px) rotate(-1deg)} }
         @keyframes slide-up { from{opacity:0;transform:translateY(24px)} to{opacity:1;transform:translateY(0)} }
         @keyframes shimmer { 0%{background-position:200% center} 100%{background-position:-200% center} }
-        .pill-a { animation: float-a 5s ease-in-out infinite; }
-        .pill-b { animation: float-b 6s ease-in-out infinite 1s; }
-        .pill-c { animation: float-a 7s ease-in-out infinite 0.5s; }
-        .form-in { animation: slide-up 0.6s ease forwards; }
+        .form-in   { animation: slide-up 0.6s ease forwards; }
         .form-in-1 { animation: slide-up 0.6s ease 0.1s both; }
         .form-in-2 { animation: slide-up 0.6s ease 0.2s both; }
         .form-in-3 { animation: slide-up 0.6s ease 0.3s both; }
@@ -124,22 +116,15 @@ export default function LoginPage() {
 
       <div className="min-h-screen flex">
 
-        {/* ── Left panel: brand / illustration ─────────────────────────── */}
+        {/* ── Left panel ───────────────────────────────────────────────── */}
         <div className="hidden lg:flex lg:w-[45%] xl:w-[40%] relative bg-blue-600 flex-col justify-between overflow-hidden">
-
-          {/* Layered background */}
           <div className="absolute inset-0 bg-gradient-to-br from-blue-700 via-blue-600 to-blue-500" />
           <div className="absolute top-0 right-0 w-80 h-80 bg-blue-500/40 rounded-full blur-3xl translate-x-1/2 -translate-y-1/2" />
           <div className="absolute bottom-0 left-0 w-64 h-64 bg-blue-800/50 rounded-full blur-3xl -translate-x-1/3 translate-y-1/3" />
-
-          {/* Grid overlay */}
           <div className="absolute inset-0 opacity-[0.06]"
             style={{ backgroundImage: "linear-gradient(white 1px, transparent 1px), linear-gradient(90deg, white 1px, transparent 1px)", backgroundSize: "40px 40px" }} />
-
-          {/* Mini chart at bottom */}
           <MiniChart />
 
-          {/* Content */}
           <div className="relative z-10 p-10">
             <Link href="/" className="inline-flex items-center gap-2.5">
               <div className="w-9 h-9 rounded-xl bg-white/20 backdrop-blur flex items-center justify-center border border-white/30">
@@ -153,9 +138,7 @@ export default function LoginPage() {
             </Link>
           </div>
 
-          {/* Center illustration area */}
           <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-10 pb-8">
-            {/* Floating stat pills */}
             <div className="relative w-full max-w-[300px] h-[320px]">
               <StatPill emoji="💰" label="This Month Saved" value="$248.50" color="text-green-300"
                 style={{ top: "0%", left: "5%", animation: "float-a 5s ease-in-out infinite" }} />
@@ -163,8 +146,6 @@ export default function LoginPage() {
                 style={{ top: "30%", right: "0%", animation: "float-b 6s ease-in-out infinite 1s" }} />
               <StatPill emoji="🛍️" label="Largest Expense" value="₭87,000" color="text-red-300"
                 style={{ bottom: "10%", left: "8%", animation: "float-a 7s ease-in-out infinite 0.5s" }} />
-
-              {/* Central orb */}
               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-28 h-28 rounded-full bg-white/10 border border-white/20 backdrop-blur-sm flex items-center justify-center shadow-2xl">
                 <div className="w-20 h-20 rounded-full bg-white/15 border border-white/20 flex items-center justify-center">
                   <svg className="w-10 h-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -173,7 +154,6 @@ export default function LoginPage() {
                 </div>
               </div>
             </div>
-
             <div className="text-center mt-6">
               <h2 className="text-white font-black text-2xl font-['Sora',sans-serif] leading-tight mb-2">
                 Your Money,<br />Under Control
@@ -184,7 +164,6 @@ export default function LoginPage() {
             </div>
           </div>
 
-          {/* Bottom: lang badges */}
           <div className="relative z-10 p-10 flex items-center gap-3">
             <span className="text-blue-300 text-xs">Available in</span>
             <span className="bg-white/15 text-white text-xs font-bold px-2.5 py-1 rounded-lg border border-white/20">EN</span>
@@ -221,14 +200,24 @@ export default function LoginPage() {
               </p>
             </div>
 
-            {/* Google OAuth button */}
+            {/* Error banner */}
+            {error && (
+              <div className="form-in mb-4 flex items-center gap-3 bg-red-50 border border-red-200 text-red-600 text-sm px-4 py-3 rounded-xl">
+                <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                {error}
+              </div>
+            )}
+
+            {/* Google button */}
             <div className="form-in-1 mb-5">
               <button
                 onClick={handleGoogle}
-                disabled={googleLoading}
+                disabled={loading}
                 className="w-full flex items-center justify-center gap-3 bg-white border border-blue-200 hover:border-blue-300 text-blue-700 font-semibold text-sm py-3.5 rounded-xl transition-all hover:shadow-md hover:shadow-blue-100 active:scale-[0.98] disabled:opacity-60 disabled:cursor-wait"
               >
-                {googleLoading ? (
+                {loading ? (
                   <svg className="w-5 h-5 animate-spin text-blue-400" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
@@ -241,7 +230,7 @@ export default function LoginPage() {
                     <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
                   </svg>
                 )}
-                {googleLoading ? "Connecting…" : "Continue with Google"}
+                {loading ? "Connecting…" : "Continue with Google"}
               </button>
             </div>
 
@@ -252,7 +241,7 @@ export default function LoginPage() {
               <div className="flex-1 h-px bg-blue-100" />
             </div>
 
-            {/* Email/password form */}
+            {/* Form */}
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="form-in-3">
                 <label htmlFor="email" className="block text-blue-700 text-xs font-bold uppercase tracking-widest mb-1.5">
@@ -265,6 +254,7 @@ export default function LoginPage() {
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="you@example.com"
                   required
+                  autoComplete="email"
                   className="w-full px-4 py-3 rounded-xl border border-blue-100 bg-blue-50/50 text-blue-800 placeholder-blue-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                 />
               </div>
@@ -279,17 +269,6 @@ export default function LoginPage() {
                   </Link>
                 </div>
                 <PasswordInput id="password" value={password} onChange={setPassword} />
-              </div>
-
-              <div className="form-in-4 flex items-center gap-2.5">
-                <input
-                  id="remember"
-                  type="checkbox"
-                  className="w-4 h-4 rounded border-blue-200 text-blue-600 focus:ring-blue-500 accent-blue-600"
-                />
-                <label htmlFor="remember" className="text-blue-500 text-sm select-none cursor-pointer">
-                  Remember me for 30 days
-                </label>
               </div>
 
               <div className="form-in-5 pt-1">
@@ -311,7 +290,6 @@ export default function LoginPage() {
               </div>
             </form>
 
-            {/* Footer note */}
             <p className="text-blue-300 text-xs text-center mt-8">
               By continuing, you agree to FinSet's{" "}
               <a href="#" className="hover:text-blue-500 underline underline-offset-2">Terms</a>{" "}
