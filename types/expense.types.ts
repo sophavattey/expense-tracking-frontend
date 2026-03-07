@@ -1,12 +1,13 @@
 import type { Category } from "./category.types";
 
-export type Currency = "USD" | "KHR";
+export type Currency      = "USD" | "KHR";
 export type PaymentMethod = "CASH" | "CARD" | "KHQR" | "BANK" | "APP" | "OTHER";
 
 export interface Expense {
   id: number;
   amount: number;
   currency: Currency;
+  amountBase: number; // always USD — use this for all calculations
   date: string;
   category: Category;
   merchantName?: string;
@@ -46,13 +47,14 @@ export interface ExpenseFilters {
 export interface MonthlySummary {
   year: number;
   month: number;
-  totalSpent: number;
-  currency: Currency;
+  totalSpentUsd: number; // sum of amountBase — always USD
+  totalSpentKhr: number; // totalSpentUsd × 4000
   breakdown: {
     categoryName: string;
     categoryIcon: string;
     categoryColor: string;
-    total: number;
+    totalUsd: number;    // category total in USD
+    totalKhr: number;    // category total in KHR
     percentage: number;
   }[];
 }

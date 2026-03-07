@@ -2,8 +2,11 @@ import { apiFetch, BASE_URL } from "@/services/api-client";
 import type { AuthUser } from "@/types/auth.types";
 
 export const authService = {
+  // redirectOn401=false: on mount we just want null user, not a redirect loop.
+  // apiFetch will still try to refresh once; if that also fails it throws,
+  // and AuthContext catches it and redirects cleanly.
   me: () =>
-    apiFetch<AuthUser>("/api/auth/me"),
+    apiFetch<AuthUser>("/api/auth/me", {}, true, false),
 
   login: (email: string, password: string) =>
     apiFetch<AuthUser>("/api/auth/login", {

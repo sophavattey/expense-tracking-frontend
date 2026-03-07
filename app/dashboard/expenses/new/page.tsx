@@ -146,7 +146,7 @@ export default function ExpenseFormPage() {
                 {numAmt > 0 ? `$${previewUSD.toFixed(2)}` : "$0.00"}
               </p>
               <p className="text-blue-200 text-sm font-semibold leading-tight">
-                {numAmt > 0 ? `₭${Math.round(previewKHR).toLocaleString()}` : "₭0"}
+                {numAmt > 0 ? `៛${Math.round(previewKHR).toLocaleString()}` : "៛0"}
               </p>
             </div>
           </div>
@@ -263,7 +263,7 @@ export default function ExpenseFormPage() {
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-white font-black text-base leading-tight">${previewUSD.toFixed(2)}</p>
-              <p className="text-blue-200 text-xs">₭{Math.round(previewKHR).toLocaleString()}</p>
+              <p className="text-blue-200 text-xs">៛{Math.round(previewKHR).toLocaleString()}</p>
             </div>
             <span className="text-blue-200 text-xs truncate max-w-[100px]">{selectedCategory?.name ?? "No category"}</span>
           </div>
@@ -282,7 +282,7 @@ export default function ExpenseFormPage() {
                   <Field label="Amount *" error={errors.amount}>
                     <div className="relative">
                       <span className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 text-blue-400 font-bold text-sm sm:text-base">
-                        {currency === "KHR" ? "₭" : "$"}
+                        {currency === "KHR" ? "៛" : "$"}
                       </span>
                       <input type="number" min="0" step="0.01" value={amount}
                         onChange={e => setAmount(e.target.value)} placeholder="0.00"
@@ -312,9 +312,9 @@ export default function ExpenseFormPage() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
                   </svg>
                   <span className="text-blue-500 text-xs">
-                    {currency === "USD" ? `≈ ₭${Math.round(previewKHR).toLocaleString()} KHR` : `≈ $${previewUSD.toFixed(2)} USD`}
+                    {currency === "USD" ? `≈ ៛${Math.round(previewKHR).toLocaleString()} KHR` : `≈ $${previewUSD.toFixed(2)} USD`}
                   </span>
-                  <span className="text-blue-300 text-xs ml-auto hidden sm:inline">at ₭{KHR_RATE}/USD</span>
+                  <span className="text-blue-300 text-xs ml-auto hidden sm:inline">at ៛{KHR_RATE}/USD</span>
                 </div>
               )}
 

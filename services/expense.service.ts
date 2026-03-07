@@ -4,11 +4,11 @@ import type { Expense, ExpensePage, ExpenseRequest, ExpenseFilters, MonthlySumma
 export const expenseService = {
   getAll: (filters?: ExpenseFilters) => {
     const q = new URLSearchParams();
-    if (filters?.page     != null) q.set("page",       String(filters.page));
-    if (filters?.size     != null) q.set("size",       String(filters.size));
-    if (filters?.categoryId)       q.set("categoryId", String(filters.categoryId));
-    if (filters?.from)             q.set("from",       filters.from);
-    if (filters?.to)               q.set("to",         filters.to);
+    if (filters?.page       != null) q.set("page",       String(filters.page));
+    if (filters?.size       != null) q.set("size",       String(filters.size));
+    if (filters?.categoryId)         q.set("categoryId", String(filters.categoryId));
+    if (filters?.from)               q.set("from",       filters.from);
+    if (filters?.to)                 q.set("to",         filters.to);
     return apiFetch<ExpensePage>(`/api/expenses?${q}`);
   },
 
@@ -30,6 +30,7 @@ export const expenseService = {
   delete: (id: number) =>
     apiFetch<void>(`/api/expenses/${id}`, { method: "DELETE" }),
 
+  // No currency param — backend always returns USD totals via amountBase
   getSummary: (params?: { year?: number; month?: number }) => {
     const q = new URLSearchParams();
     if (params?.year)  q.set("year",  String(params.year));

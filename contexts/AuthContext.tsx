@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { authService } from "../services/auth.service";
 import type { AuthUser } from "../types/auth.types";
 
@@ -18,6 +18,9 @@ interface AuthContextType {
   clearError: () => void;
 }
 
+// Public routes that should never trigger a redirect to /login
+const PUBLIC_PATHS = ["/login", "/signup", "/forgot-password"];
+
 // ─── Context ──────────────────────────────────────────────────────
 const AuthContext = createContext<AuthContextType | null>(null);
 
@@ -26,22 +29,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user,    setUser]    = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [error,   setError]   = useState<string | null>(null);
-  const router = useRouter();
+  const router   = useRouter();
+  const pathname = usePathname();
 
-  // Validate session on mount.
-  // apiFetch will automatically try to refresh a 401 before giving up.
-  // If both access token and refresh token are expired/missing, apiFetch
-  // redirects to /login — so we never show an "Authentication required" error.
   useEffect(() => {
     authService.me()
       .then(setUser)
       .catch(() => {
-        // If we reach here, the refresh also failed and apiFetch has already
-        // redirected to /login. Just clear the user state cleanly.
         setUser(null);
+        // Only redirect to /login if we're on a protected route.
+        // This prevents the infinite loop: /login → me() fails → redirect /login → ...
+        const isPublic = PUBLIC_PATHS.some(p => pathname.startsWith(p));
+        if (!isPublic) {
+          router.replace("/login");
+        }
       })
       .finally(() => setLoading(false));
-  }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // intentionally run once on mount only
 
   const login = useCallback(async (email: string, password: string) => {
     setLoading(true);

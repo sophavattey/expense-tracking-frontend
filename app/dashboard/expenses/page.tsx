@@ -11,9 +11,9 @@ import type { Expense } from "@/types/expense.types";
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 const KHR_RATE = 4000;
 
-function toUSD(e: Expense) { return e.currency === "USD" ? e.amount : e.amount / KHR_RATE; }
+// amountBase is always USD — use it directly for all maths
 function fmtUSD(n: number) { return `$${n.toFixed(2)}`; }
-function fmtKHR(n: number) { return `₭${Math.round(n * KHR_RATE).toLocaleString()}`; }
+function fmtKHR(usd: number) { return `៛${Math.round(usd * KHR_RATE).toLocaleString()}`; }
 function fmtDate(iso: string) {
   const d = new Date(iso + "T00:00:00");
   return `${MONTHS[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
@@ -28,7 +28,6 @@ function DeleteModal({ expense, onConfirm, onClose, deleting }: {
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
       <div className="relative bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl w-full sm:max-w-sm p-7"
         style={{ animation: "slideUp 0.25s ease both" }}>
-        {/* drag handle on mobile */}
         <div className="w-10 h-1 bg-blue-100 rounded-full mx-auto mb-6 sm:hidden" />
         <div className="text-center mb-6">
           <div className="w-16 h-16 rounded-2xl mx-auto mb-4 flex items-center justify-center text-3xl"
@@ -36,8 +35,8 @@ function DeleteModal({ expense, onConfirm, onClose, deleting }: {
             {expense.category.icon}
           </div>
           <h3 className="text-blue-800 font-black text-xl font-['Sora',sans-serif]">Delete this expense?</h3>
-          <p className="text-red-500 font-bold text-lg mt-1">{fmtUSD(toUSD(expense))}</p>
-          <p className="text-blue-300 text-sm">{fmtKHR(toUSD(expense))}</p>
+          <p className="text-red-500 font-bold text-lg mt-1">{fmtUSD(expense.amountBase)}</p>
+          <p className="text-blue-300 text-sm">{fmtKHR(expense.amountBase)}</p>
           <p className="text-blue-400 text-sm mt-1">
             {expense.merchantName ?? expense.category.name} · {fmtDate(expense.date)}
           </p>
@@ -66,7 +65,6 @@ function ExpenseRow({ expense, onEdit, onDelete }: {
     CARD: "bg-yellow-50 text-yellow-600", BANK: "bg-purple-50 text-purple-600",
     APP: "bg-orange-50 text-orange-500", OTHER: "bg-slate-50 text-slate-500",
   };
-  const usd = toUSD(expense);
 
   return (
     <div className="flex items-center gap-3 py-3 border-b border-blue-50 last:border-0 active:bg-blue-50/60 sm:hover:bg-blue-50/40 -mx-2 px-2 rounded-xl transition-all group">
@@ -89,13 +87,18 @@ function ExpenseRow({ expense, onEdit, onDelete }: {
         </div>
       </div>
 
-      {/* Amount — always visible */}
+      {/* Always show original amount + USD base */}
       <div className="text-right shrink-0">
-        <p className="text-red-500 font-bold text-sm leading-tight">-{fmtUSD(usd)}</p>
-        <p className="text-blue-300 text-xs leading-tight">-{fmtKHR(usd)}</p>
+        <p className="text-red-500 font-bold text-sm leading-tight">
+          -{expense.currency === "USD"
+            ? fmtUSD(expense.amount)
+            : `៛${Math.round(expense.amount).toLocaleString()}`}
+        </p>
+        <p className="text-blue-300 text-xs leading-tight">
+          {expense.currency === "KHR" ? `-${fmtUSD(expense.amountBase)}` : `-${fmtKHR(expense.amountBase)}`}
+        </p>
       </div>
 
-      {/* Actions — icon-only on mobile, labeled on desktop */}
       <div className="flex items-center gap-1 shrink-0 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
         <button onClick={() => onEdit(expense)} aria-label="Edit"
           className="p-2 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-500 transition-colors">
@@ -122,15 +125,15 @@ function ExpenseRow({ expense, onEdit, onDelete }: {
 export default function ExpensesPage() {
   const router = useRouter();
 
-  const [catFilter,    setCatFilter]   = useState<number | null>(null);
-  const [from,         setFrom]        = useState("");
-  const [to,           setTo]          = useState("");
-  const [showFilters,  setShowFilters] = useState(false);
+  const [catFilter,    setCatFilter]    = useState<number | null>(null);
+  const [from,         setFrom]         = useState("");
+  const [to,           setTo]           = useState("");
+  const [showFilters,  setShowFilters]  = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Expense | null>(null);
-  const [deleting,     setDeleting]    = useState(false);
+  const [deleting,     setDeleting]     = useState(false);
 
   const { expenses, totalElements, loading, error, refetch } = useExpenses({
-    size: 200, // load all — no pagination
+    size: 200,
     categoryId: catFilter ?? undefined,
     from: from || undefined,
     to:   to   || undefined,
@@ -152,7 +155,8 @@ export default function ExpensesPage() {
     }
   };
 
-  const totalUSD   = expenses.reduce((s, e) => s + toUSD(e), 0);
+  // Use amountBase (always USD) for totals — no manual conversion needed
+  const totalUSD   = expenses.reduce((s, e) => s + e.amountBase, 0);
   const hasFilters = catFilter !== null || from || to;
 
   return (
@@ -215,7 +219,6 @@ export default function ExpensesPage() {
               <p className="text-red-500 font-black text-lg sm:text-xl font-['Sora',sans-serif] leading-tight">{fmtUSD(totalUSD)}</p>
               <p className="text-blue-300 text-xs mt-0.5">{fmtKHR(totalUSD)}</p>
             </div>
-            {/* hide on mobile to keep grid balanced */}
             <div className="hidden sm:block bg-white rounded-2xl border border-blue-100 px-5 py-4">
               <p className="text-blue-400 text-[10px] font-bold uppercase tracking-widest mb-1">Average</p>
               <p className="text-blue-800 font-black text-xl font-['Sora',sans-serif] leading-tight">
@@ -242,8 +245,6 @@ export default function ExpensesPage() {
                 </button>
               )}
             </div>
-
-            {/* Category pills — horizontal scroll on mobile */}
             <div>
               <p className="text-blue-400 text-xs font-semibold mb-2">Category</p>
               <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-none">
@@ -260,8 +261,6 @@ export default function ExpensesPage() {
                 ))}
               </div>
             </div>
-
-            {/* Date range */}
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <p className="text-blue-400 text-xs font-semibold mb-1.5">From</p>
@@ -289,12 +288,11 @@ export default function ExpensesPage() {
 
         {/* ── Expense list ── */}
         <div className="bg-white rounded-2xl border border-blue-100 shadow-sm overflow-hidden">
-          {/* Column header — desktop only */}
           {!loading && expenses.length > 0 && (
             <div className="hidden sm:flex items-center gap-4 px-8 py-3 border-b border-blue-50 bg-blue-50/50">
               <div className="w-11 shrink-0" />
               <div className="flex-1 text-blue-400 text-[10px] font-bold uppercase tracking-widest">Expense</div>
-              <div className="text-right text-blue-400 text-[10px] font-bold uppercase tracking-widest min-w-[100px] mr-2">USD · KHR</div>
+              <div className="text-right text-blue-400 text-[10px] font-bold uppercase tracking-widest min-w-[100px] mr-2">Original · USD</div>
               <div className="w-[72px] shrink-0" />
             </div>
           )}
@@ -346,7 +344,6 @@ export default function ExpensesPage() {
           )}
         </div>
 
-        {/* bottom padding for mobile nav clearance */}
         <div className="h-4 sm:h-0" />
       </div>
 

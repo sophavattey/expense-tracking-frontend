@@ -24,7 +24,6 @@ function drainQueue(error?: unknown) {
 
 async function tryRefresh(): Promise<void> {
   if (isRefreshing) {
-    // Another request is already refreshing — join the queue
     return new Promise<void>((resolve, reject) => {
       refreshQueue.push({ resolve, reject });
     });
@@ -37,25 +36,24 @@ async function tryRefresh(): Promise<void> {
       credentials: "include",
     });
     if (!res.ok) throw new Error("Refresh failed");
-    drainQueue();          // wake all waiting requests — they will retry
+    drainQueue();
   } catch (err) {
-    drainQueue(err);       // wake all waiting requests — they will throw
-    // Redirect to login. Works in both browser and during RSC navigation.
-    if (typeof window !== "undefined") {
-      window.location.href = "/login";
-    }
-    throw err;
+    drainQueue(err);
+    throw err; // caller decides what to do (AuthContext will redirect)
   } finally {
     isRefreshing = false;
   }
 }
 
 // ─── Core fetch wrapper ───────────────────────────────────────────
+// `redirectOn401` — set false for calls that should simply throw (e.g. /me
+//  on mount) so AuthContext can decide whether to redirect.
 
 export async function apiFetch<T>(
   path: string,
   options: RequestInit = {},
-  retry = true
+  retry = true,
+  redirectOn401 = true,
 ): Promise<T> {
   const res = await fetch(`${BASE_URL}${path}`, {
     ...options,
@@ -64,10 +62,17 @@ export async function apiFetch<T>(
   });
 
   if (res.status === 401 && retry) {
-    // Will either resolve (refresh succeeded) or throw (refresh failed + redirect)
-    await tryRefresh();
-    // Retry the original request once with the new access-token cookie
-    return apiFetch<T>(path, options, false);
+    try {
+      await tryRefresh();
+      // Refresh succeeded — retry the original request once
+      return apiFetch<T>(path, options, false, redirectOn401);
+    } catch {
+      // Refresh failed — redirect only if caller asked for it AND we're in the browser
+      if (redirectOn401 && typeof window !== "undefined") {
+        window.location.href = "/login";
+      }
+      throw new Error("Session expired. Please log in again.");
+    }
   }
 
   if (!res.ok) {
