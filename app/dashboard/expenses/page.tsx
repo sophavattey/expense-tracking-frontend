@@ -11,7 +11,6 @@ import type { Expense } from "@/types/expense.types";
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 const KHR_RATE = 4000;
 
-// amountBase is always USD — use it directly for all maths
 function fmtUSD(n: number) { return `$${n.toFixed(2)}`; }
 function fmtKHR(usd: number) { return `៛${Math.round(usd * KHR_RATE).toLocaleString()}`; }
 function fmtDate(iso: string) {
@@ -87,7 +86,6 @@ function ExpenseRow({ expense, onEdit, onDelete }: {
         </div>
       </div>
 
-      {/* Always show original amount + USD base */}
       <div className="text-right shrink-0">
         <p className="text-red-500 font-bold text-sm leading-tight">
           -{expense.currency === "USD"
@@ -155,7 +153,6 @@ export default function ExpensesPage() {
     }
   };
 
-  // Use amountBase (always USD) for totals — no manual conversion needed
   const totalUSD   = expenses.reduce((s, e) => s + e.amountBase, 0);
   const hasFilters = catFilter !== null || from || to;
 
@@ -335,8 +332,11 @@ export default function ExpensesPage() {
           ) : (
             <div className="p-3 sm:p-6">
               {expenses.map(e => (
-                <ExpenseRow key={e.id} expense={e}
-                  onEdit={exp => router.push(`/dashboard/expenses/new?id=${exp.id}`)}
+                <ExpenseRow
+                  key={e.id}
+                  expense={e}
+                  // ✅ Navigate to /dashboard/expenses/edit/[id]
+                  onEdit={exp => router.push(`/dashboard/expenses/edit/${exp.id}`)}
                   onDelete={setDeleteTarget}
                 />
               ))}
