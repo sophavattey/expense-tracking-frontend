@@ -2,7 +2,6 @@ import { apiFetch } from "./api-client";
 import type { Budget, BudgetSummary, BudgetRequest } from "../types/budget.types";
 
 export const budgetService = {
-  /** All budgets with live spent / remaining / percentage */
   getStatus: () =>
     apiFetch<BudgetSummary>("/api/budgets/status"),
 
@@ -12,12 +11,12 @@ export const budgetService = {
       body: JSON.stringify(data),
     }),
 
-  update: (id: number, data: BudgetRequest) =>
+  update: (id: string, data: BudgetRequest) =>  
     apiFetch<Budget>(`/api/budgets/${id}`, {
       method: "PUT",
       body: JSON.stringify(data),
     }),
 
-  delete: (id: number) =>
+  delete: (id: string) =>                        
     apiFetch<void>(`/api/budgets/${id}`, { method: "DELETE" }),
 };

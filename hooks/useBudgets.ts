@@ -10,8 +10,8 @@ interface UseBudgetsReturn {
   error: string | null;
   refetch: () => Promise<void>;
   createBudget: (data: BudgetRequest) => Promise<void>;
-  updateBudget: (id: number, data: BudgetRequest) => Promise<void>;
-  deleteBudget: (id: number) => Promise<void>;
+  updateBudget: (id: string, data: BudgetRequest) => Promise<void>;  
+  deleteBudget: (id: string) => Promise<void>;                        
 }
 
 export function useBudgets(): UseBudgetsReturn {
@@ -39,12 +39,12 @@ export function useBudgets(): UseBudgetsReturn {
     await fetchBudgets();
   }, [fetchBudgets]);
 
-  const updateBudget = useCallback(async (id: number, data: BudgetRequest) => {
+  const updateBudget = useCallback(async (id: string, data: BudgetRequest) => {  // ← string
     await budgetService.update(id, data);
     await fetchBudgets();
   }, [fetchBudgets]);
 
-  const deleteBudget = useCallback(async (id: number) => {
+  const deleteBudget = useCallback(async (id: string) => {                        
     await budgetService.delete(id);
     await fetchBudgets();
   }, [fetchBudgets]);

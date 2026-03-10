@@ -10,7 +10,7 @@ interface UseExpenseReturn {
   error: string | null;
 }
 
-export function useExpense(id: number | null): UseExpenseReturn {
+export function useExpense(id: string | null): UseExpenseReturn {  
   const [expense, setExpense] = useState<Expense | null>(null);
   const [loading, setLoading] = useState(false);
   const [error,   setError]   = useState<string | null>(null);

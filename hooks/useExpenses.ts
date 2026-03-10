@@ -12,8 +12,8 @@ interface UseExpensesReturn {
   error: string | null;
   refetch: () => Promise<void>;
   createExpense: (data: ExpenseRequest) => Promise<Expense>;
-  updateExpense: (id: number, data: ExpenseRequest) => Promise<Expense>;
-  deleteExpense: (id: number) => Promise<void>;
+  updateExpense: (id: string, data: ExpenseRequest) => Promise<Expense>;  
+  deleteExpense: (id: string) => Promise<void>;                            
 }
 
 export function useExpenses(filters?: ExpenseFilters): UseExpensesReturn {
@@ -23,10 +23,9 @@ export function useExpenses(filters?: ExpenseFilters): UseExpensesReturn {
   const [loading,       setLoading]       = useState(true);
   const [error,         setError]         = useState<string | null>(null);
 
-  // Destructure to primitives so the closure always captures the latest values
   const page       = filters?.page;
   const size       = filters?.size;
-  const categoryId = filters?.categoryId;
+  const categoryId = filters?.categoryId; 
   const from       = filters?.from;
   const to         = filters?.to;
 
@@ -45,7 +44,7 @@ export function useExpenses(filters?: ExpenseFilters): UseExpensesReturn {
     } finally {
       setLoading(false);
     }
-  }, [page, size, categoryId, from, to]); // primitives — stable, no stale closure
+  }, [page, size, categoryId, from, to]);
 
   useEffect(() => { fetchExpenses(); }, [fetchExpenses]);
 
@@ -55,13 +54,13 @@ export function useExpenses(filters?: ExpenseFilters): UseExpensesReturn {
     return created;
   }, [fetchExpenses]);
 
-  const updateExpense = useCallback(async (id: number, data: ExpenseRequest) => {
+  const updateExpense = useCallback(async (id: string, data: ExpenseRequest) => {  
     const updated = await expenseService.update(id, data);
     setExpenses(prev => prev.map(e => e.id === id ? updated : e));
     return updated;
   }, []);
 
-  const deleteExpense = useCallback(async (id: number) => {
+  const deleteExpense = useCallback(async (id: string) => {                        
     await expenseService.delete(id);
     await fetchExpenses();
   }, [fetchExpenses]);

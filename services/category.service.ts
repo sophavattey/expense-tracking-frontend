@@ -11,12 +11,12 @@ export const categoryService = {
       body: JSON.stringify(data),
     }),
 
-  update: (id: number, data: CategoryRequest) =>
+  update: (id: string, data: CategoryRequest) =>  
     apiFetch<Category>(`/api/categories/${id}`, {
       method: "PUT",
       body: JSON.stringify(data),
     }),
 
-  delete: (id: number) =>
+  delete: (id: string) =>                          
     apiFetch<void>(`/api/categories/${id}`, { method: "DELETE" }),
 };

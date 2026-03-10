@@ -144,7 +144,7 @@ function BudgetModal({ editStatus, categories, onSave, onClose, saving, error: s
 }) {
   const isEdit = !!editStatus;
 
-  const [categoryId, setCategoryId] = useState<number | null>(editStatus?.category?.id ?? null);
+  const [categoryId, setCategoryId] = useState<string | null>(editStatus?.category?.id ?? null);
   const [period,     setPeriod]     = useState<BudgetPeriod>(editStatus?.period   ?? "MONTHLY");
   const [limitUsd,   setLimitUsd]   = useState(editStatus ? String(editStatus.limitUsd) : "");
   const [recurring,  setRecurring]  = useState(true);

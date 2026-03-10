@@ -3,8 +3,8 @@ import type { Category } from "./category.types";
 export type BudgetPeriod = "DAILY" | "WEEKLY" | "MONTHLY";
 
 export interface Budget {
-  id: number;
-  category: Category | null; // null = overall budget
+  id: string;                           
+  category: Category | null;
   period: BudgetPeriod;
   limitUsd: number;
   recurring: boolean;
@@ -13,7 +13,7 @@ export interface Budget {
 }
 
 export interface BudgetStatus {
-  id: number;
+  id: string;                           
   category: Category | null;
   period: BudgetPeriod;
   limitUsd: number;
@@ -22,9 +22,9 @@ export interface BudgetStatus {
   spentKhr: number;
   remainingUsd: number;
   remainingKhr: number;
-  percentage: number;   // 0–999+
+  percentage: number;
   isOver: boolean;
-  periodLabel: string;  // e.g. "Mar 2026", "Week of Mar 3", "Mar 7, 2026"
+  periodLabel: string;
   periodStart: string;
   periodEnd: string;
 }
@@ -40,7 +40,7 @@ export interface BudgetSummary {
 }
 
 export interface BudgetRequest {
-  categoryId?: number | null;
+  categoryId?: string | null;          
   period: BudgetPeriod;
   limitUsd: number;
   recurring: boolean;

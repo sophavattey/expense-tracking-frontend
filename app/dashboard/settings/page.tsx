@@ -2,6 +2,31 @@
 
 import { useAuth } from "@/contexts/AuthContext";
 
+/* ─── Avatar ─────────────────────────────────────────────────────── */
+function Avatar({ user, size = "md" }: {
+  user: { name: string; avatar?: string };
+  size?: "sm" | "md" | "lg";
+}) {
+  const dims = { sm: "w-9 h-9 text-sm", md: "w-16 h-16 text-2xl", lg: "w-20 h-20 text-3xl" }[size];
+  const initial = user.name?.charAt(0)?.toUpperCase() ?? "?";
+
+  if (user.avatar) {
+    return (
+      <img
+        src={user.avatar}
+        alt={user.name}
+        referrerPolicy="no-referrer"
+        className={`${dims} rounded-2xl object-cover border-2 border-white/30 shrink-0`}
+      />
+    );
+  }
+  return (
+    <div className={`${dims} rounded-2xl bg-white/20 border-2 border-white/30 flex items-center justify-center text-white font-black font-['Sora',sans-serif] shrink-0`}>
+      {initial}
+    </div>
+  );
+}
+
 /* ─── Info row ────────────────────────────────────────────────────── */
 function InfoRow({ label, value }: { label: string; value: string }) {
   return (
@@ -39,8 +64,7 @@ export default function SettingsPage() {
     );
   }
 
-  const initial = user.name?.charAt(0)?.toUpperCase() ?? "?";
-  const joinDate = "February 2026"; // placeholder until backend returns createdAt
+  const joinDate      = "February 2026"; // placeholder until backend returns createdAt
   const providerLabel = user.provider === "GOOGLE" ? "Google OAuth2" : "Email & Password";
   const providerIcon  = user.provider === "GOOGLE" ? "🔵" : "✉️";
 
@@ -49,9 +73,7 @@ export default function SettingsPage() {
 
       {/* ── Profile header ── */}
       <div className="bg-gradient-to-r from-blue-700 to-blue-500 rounded-2xl p-5 flex items-center gap-4 shadow-lg shadow-blue-600/20">
-        <div className="w-16 h-16 rounded-2xl bg-white/20 border-2 border-white/30 flex items-center justify-center text-white font-black text-2xl font-['Sora',sans-serif] shrink-0">
-          {initial}
-        </div>
+        <Avatar user={user} size="md" />
         <div className="min-w-0">
           <p className="text-white font-black text-xl font-['Sora',sans-serif] leading-tight truncate">{user.name}</p>
           <p className="text-blue-200 text-sm truncate">{user.email}</p>
@@ -70,7 +92,7 @@ export default function SettingsPage() {
       <Section title="Account Information" icon="👤">
         <InfoRow label="Full Name"    value={user.name} />
         <InfoRow label="Email"        value={user.email} />
-        <InfoRow label="Account ID"   value={`#${user.id}`} />
+        <InfoRow label="Account ID"   value={`${user.id.slice(0, 8)}…`} />
         <InfoRow label="Role"         value={user.role} />
         <InfoRow label="Sign-in via"  value={providerLabel} />
         <InfoRow label="Member since" value={joinDate} />
@@ -90,7 +112,7 @@ export default function SettingsPage() {
           <InfoRow label="Password" value="••••••••  (change coming soon)" />
         )}
         <InfoRow label="Session tokens" value="HTTP-only cookies" />
-        <InfoRow label="Token refresh"  value="Automatic (30-day rotation)" />
+        <InfoRow label="Token refresh"  value="Automatic (7-day rotation)" />
         <InfoRow label="2FA"            value="Coming soon" />
       </Section>
 

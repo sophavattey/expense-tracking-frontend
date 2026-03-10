@@ -4,10 +4,10 @@ export type Currency      = "USD" | "KHR";
 export type PaymentMethod = "CASH" | "CARD" | "KHQR" | "BANK" | "APP" | "OTHER";
 
 export interface Expense {
-  id: number;
+  id: string;                           
   amount: number;
   currency: Currency;
-  amountBase: number; // always USD — use this for all calculations
+  amountBase: number;
   date: string;
   category: Category;
   merchantName?: string;
@@ -30,7 +30,7 @@ export interface ExpenseRequest {
   amount: number;
   currency: Currency;
   date: string;
-  categoryId: number;
+  categoryId: string;                   
   merchantName?: string;
   note?: string;
   paymentMethod?: string;
@@ -39,7 +39,7 @@ export interface ExpenseRequest {
 export interface ExpenseFilters {
   page?: number;
   size?: number;
-  categoryId?: number;
+  categoryId?: string;                  
   from?: string;
   to?: string;
 }
@@ -47,14 +47,14 @@ export interface ExpenseFilters {
 export interface MonthlySummary {
   year: number;
   month: number;
-  totalSpentUsd: number; // sum of amountBase — always USD
-  totalSpentKhr: number; // totalSpentUsd × 4000
+  totalSpentUsd: number;
+  totalSpentKhr: number;
   breakdown: {
     categoryName: string;
     categoryIcon: string;
     categoryColor: string;
-    totalUsd: number;    // category total in USD
-    totalKhr: number;    // category total in KHR
+    totalUsd: number;
+    totalKhr: number;
     percentage: number;
   }[];
 }

@@ -130,7 +130,6 @@ function DeleteModal({ category, onConfirm, onClose, deleting, deleteError }: {
           )}
         </div>
 
-        {/* ── Blocked state: category has expenses ── */}
         {isBlocked && (
           <div className="mb-5 rounded-2xl border border-amber-200 bg-amber-50 p-4">
             <div className="flex items-start gap-3">
@@ -241,15 +240,15 @@ export default function CategoriesPage() {
     setDeleting(true); setDeleteError(null);
     try {
       await deleteCategory(deleteTarget.id);
-      setDeleteTarget(null); // only close on success
+      setDeleteTarget(null);
     } catch (e: any) {
-      setDeleteError(e.message); // keep modal open, show error inside it
+      setDeleteError(e.message);
     } finally {
       setDeleting(false);
     }
   };
 
-  const openDelete = (category: Category) => { setDeleteError(null); setDeleteTarget(category); };
+  const openDelete  = (category: Category) => { setDeleteError(null); setDeleteTarget(category); };
   const closeDelete = () => { setDeleteTarget(null); setDeleteError(null); };
 
   const defaults = categories.filter(c =>  c.isDefault);
@@ -351,8 +350,8 @@ export default function CategoriesPage() {
         <div className="h-4 sm:h-0" />
       </div>
 
-      {showCreate  && <CategoryModal onSave={handleCreate} onClose={() => setShowCreate(false)}  saving={saving} error={modalError} />}
-      {editTarget  && <CategoryModal initial={editTarget} onSave={handleUpdate} onClose={() => setEditTarget(null)} saving={saving} error={modalError} />}
+      {showCreate   && <CategoryModal onSave={handleCreate} onClose={() => setShowCreate(false)} saving={saving} error={modalError} />}
+      {editTarget   && <CategoryModal initial={editTarget} onSave={handleUpdate} onClose={() => setEditTarget(null)} saving={saving} error={modalError} />}
       {deleteTarget && <DeleteModal category={deleteTarget} onConfirm={handleDelete} onClose={closeDelete} deleting={deleting} deleteError={deleteError} />}
     </>
   );

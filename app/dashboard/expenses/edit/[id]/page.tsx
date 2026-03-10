@@ -16,14 +16,14 @@ const KHR_RATE = 4000;
 //  Calls: PUT /api/expenses/{id}
 // ═══════════════════════════════════════════════════════════════════
 export default function EditExpensePage({ params }: { params: Promise<{ id: string }> }) {
-  const router    = useRouter();
-  const { id }    = use(params);          
-  const expenseId = Number(id);
+  const router       = useRouter();
+  const { id }       = use(params);   // ✅ Next.js 15: params is a Promise
+  const expenseId    = id;            // ✅ UUID: keep as string, no Number() conversion
 
   const [amount,     setAmount]     = useState("");
   const [currency,   setCurrency]   = useState<"USD" | "KHR">("USD");
   const [date,       setDate]       = useState(new Date().toISOString().split("T")[0]);
-  const [categoryId, setCategoryId] = useState<number | "">("");
+  const [categoryId, setCategoryId] = useState<string | "">("");  // ✅ UUID: string | ""
   const [merchant,   setMerchant]   = useState("");
   const [note,       setNote]       = useState("");
   const [payMethod,  setPayMethod]  = useState("CASH");
@@ -43,7 +43,7 @@ export default function EditExpensePage({ params }: { params: Promise<{ id: stri
         setAmount(String(exp.amount));
         setCurrency(exp.currency);
         setDate(exp.date);
-        setCategoryId(exp.category.id);
+        setCategoryId(exp.category.id);  // ✅ UUID: already string
         setMerchant(exp.merchantName ?? "");
         setNote(exp.note ?? "");
         setPayMethod(exp.paymentMethod);
@@ -68,7 +68,7 @@ export default function EditExpensePage({ params }: { params: Promise<{ id: stri
     try {
       const payload: ExpenseRequest = {
         amount: parseFloat(amount), currency, date,
-        categoryId:    Number(categoryId),
+        categoryId,                              // ✅ UUID: already string, no Number() wrap
         merchantName:  merchant.trim() || undefined,
         note:          note.trim()     || undefined,
         paymentMethod: payMethod,
@@ -135,7 +135,7 @@ export default function EditExpensePage({ params }: { params: Promise<{ id: stri
             </Link>
             <div>
               <p className="text-blue-400 text-[10px] sm:text-xs font-bold uppercase tracking-widest">
-                Editing expense #{expenseId}
+                Editing expense
               </p>
               <h1 className="text-blue-800 font-black text-xl sm:text-3xl font-['Sora',sans-serif] leading-tight">
                 Edit Expense

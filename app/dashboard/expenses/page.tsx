@@ -123,7 +123,7 @@ function ExpenseRow({ expense, onEdit, onDelete }: {
 export default function ExpensesPage() {
   const router = useRouter();
 
-  const [catFilter,    setCatFilter]    = useState<number | null>(null);
+  const [catFilter,    setCatFilter]    = useState<string | null>(null);  // ✅ UUID: string | null
   const [from,         setFrom]         = useState("");
   const [to,           setTo]           = useState("");
   const [showFilters,  setShowFilters]  = useState(false);
@@ -335,7 +335,6 @@ export default function ExpensesPage() {
                 <ExpenseRow
                   key={e.id}
                   expense={e}
-                  // ✅ Navigate to /dashboard/expenses/edit/[id]
                   onEdit={exp => router.push(`/dashboard/expenses/edit/${exp.id}`)}
                   onDelete={setDeleteTarget}
                 />

@@ -19,6 +19,30 @@ function LogoMark() {
   );
 }
 
+/* ─── User avatar ────────────────────────────────────────────────── */
+function UserAvatar({ name, avatar, size = "md" }: {
+  name: string; avatar?: string; size?: "sm" | "md";
+}) {
+  const dims   = size === "sm" ? "w-9 h-9 text-sm" : "w-9 h-9 text-sm";
+  const initial = name?.charAt(0)?.toUpperCase() ?? "?";
+
+  if (avatar) {
+    return (
+      <img
+        src={avatar}
+        alt={name}
+        referrerPolicy="no-referrer"
+        className={`${dims} rounded-full object-cover shrink-0 shadow-md`}
+      />
+    );
+  }
+  return (
+    <div className={`${dims} rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center font-black text-white shrink-0 shadow-md`}>
+      {initial}
+    </div>
+  );
+}
+
 /* ─── Nav links ──────────────────────────────────────────────────── */
 function NavLinks({ activeId, collapsed = false, onLinkClick }: {
   activeId: string;
@@ -62,18 +86,14 @@ function NavLinks({ activeId, collapsed = false, onLinkClick }: {
 /* ─── User row ───────────────────────────────────────────────────── */
 function UserRow({ compact = false }: { compact?: boolean }) {
   const { user, logout } = useAuth();
-  const initial = user?.name?.charAt(0)?.toUpperCase() ?? "?";
-  const email = user?.email ?? "";
+  const name   = user?.name   ?? "";
+  const email  = user?.email  ?? "";
+  const avatar = user?.avatar;
 
   if (compact) {
     return (
       <div className="flex items-center justify-center py-2">
-        <div
-          title={user?.name}
-          className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-sm font-black text-white cursor-pointer hover:opacity-90 transition-opacity shadow-lg"
-        >
-          {initial}
-        </div>
+        <UserAvatar name={name} avatar={avatar} />
       </div>
     );
   }
@@ -81,9 +101,7 @@ function UserRow({ compact = false }: { compact?: boolean }) {
   return (
     <div className="mb-2">
       <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-blue-700/50 cursor-pointer transition-colors">
-        <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-sm font-black text-white shrink-0 shadow-md">
-          {initial}
-        </div>
+        <UserAvatar name={name} avatar={avatar} />
         <div className="flex-1 min-w-0">
           <p className="text-white text-sm font-bold truncate">{user?.name ?? "—"}</p>
           <p className="text-blue-400 text-xs truncate">{email}</p>
@@ -153,7 +171,6 @@ export function MobileDrawer({ open, onClose }: { open: boolean; onClose: () => 
   const pathname = usePathname();
   const { user, logout } = useAuth();
   const activeId = NAV_ITEMS.slice().reverse().find(item => pathname.startsWith(item.href))?.id ?? "dashboard";
-  const initial = user?.name?.charAt(0)?.toUpperCase() ?? "?";
 
   return (
     <>
@@ -177,9 +194,7 @@ export function MobileDrawer({ open, onClose }: { open: boolean; onClose: () => 
 
         <div className="p-4 border-t border-blue-800 space-y-2">
           <div className="flex items-center gap-3 px-3 py-3 rounded-xl bg-blue-800/60">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center font-black text-white shadow-lg">
-              {initial}
-            </div>
+            <UserAvatar name={user?.name ?? ""} avatar={user?.avatar} />
             <div className="min-w-0">
               <p className="text-white text-sm font-bold truncate">{user?.name ?? "—"}</p>
               <p className="text-blue-400 text-xs truncate">{user?.email ?? ""}</p>

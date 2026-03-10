@@ -32,7 +32,8 @@ export function Field({ label, error, children }: {
   );
 }
 
-interface Category { id: number; name: string; icon: string; color: string }
+// ✅ UUID: id is string
+interface Category { id: string; name: string; icon: string; color: string }
 
 export function ExpenseFormFields({
   amount, setAmount, currency, setCurrency, date, setDate,
@@ -42,7 +43,7 @@ export function ExpenseFormFields({
   amount: string;      setAmount: (v: string) => void;
   currency: "USD" | "KHR"; setCurrency: (v: "USD" | "KHR") => void;
   date: string;        setDate: (v: string) => void;
-  categoryId: number | ""; setCategoryId: (v: number | "") => void;
+  categoryId: string | ""; setCategoryId: (v: string | "") => void;  // ✅ UUID: string | ""
   merchant: string;    setMerchant: (v: string) => void;
   note: string;        setNote: (v: string) => void;
   payMethod: string;   setPayMethod: (v: string) => void;
