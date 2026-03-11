@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 
 /* ─── Avatar ─────────────────────────────────────────────────────── */
@@ -9,15 +10,10 @@ function Avatar({ user, size = "md" }: {
 }) {
   const dims = { sm: "w-9 h-9 text-sm", md: "w-16 h-16 text-2xl", lg: "w-20 h-20 text-3xl" }[size];
   const initial = user.name?.charAt(0)?.toUpperCase() ?? "?";
-
   if (user.avatar) {
     return (
-      <img
-        src={user.avatar}
-        alt={user.name}
-        referrerPolicy="no-referrer"
-        className={`${dims} rounded-2xl object-cover border-2 border-white/30 shrink-0`}
-      />
+      <img src={user.avatar} alt={user.name} referrerPolicy="no-referrer"
+        className={`${dims} rounded-2xl object-cover border-2 border-white/30 shrink-0`} />
     );
   }
   return (
@@ -33,6 +29,47 @@ function InfoRow({ label, value }: { label: string; value: string }) {
     <div className="flex items-center justify-between py-3 border-b border-blue-50 last:border-0">
       <span className="text-blue-400 text-xs font-bold uppercase tracking-widest">{label}</span>
       <span className="text-blue-800 text-sm font-semibold">{value}</span>
+    </div>
+  );
+}
+
+/* ─── Currency row — interactive ─────────────────────────────────── */
+function CurrencyRow({ current, onChange }: {
+  current: "USD" | "KHR";
+  onChange: (c: "USD" | "KHR") => Promise<void>;
+}) {
+  const [saving, setSaving] = useState(false);
+
+  const handleSwitch = async (c: "USD" | "KHR") => {
+    if (c === current || saving) return;
+    setSaving(true);
+    try { await onChange(c); }
+    finally { setSaving(false); }
+  };
+
+  return (
+    <div className="flex items-center justify-between py-3 border-b border-blue-50 last:border-0">
+      <span className="text-blue-400 text-xs font-bold uppercase tracking-widest">Primary Currency</span>
+      <div className="flex items-center gap-1.5">
+        {saving && (
+          <svg className="w-3.5 h-3.5 animate-spin text-blue-400" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+          </svg>
+        )}
+        <div className="flex bg-blue-50 border border-blue-100 rounded-lg p-0.5">
+          {(["USD", "KHR"] as const).map(c => (
+            <button key={c} onClick={() => handleSwitch(c)} disabled={saving}
+              className={`px-3 py-1 rounded-md text-xs font-bold transition-all ${
+                current === c
+                  ? "bg-blue-600 text-white shadow-sm"
+                  : "text-blue-400 hover:text-blue-600"
+              }`}>
+              {c === "USD" ? "🇺🇸 USD" : "🇰🇭 KHR"}
+            </button>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
@@ -54,7 +91,7 @@ function Section({ title, icon, children }: { title: string; icon: string; child
    SETTINGS PAGE
 ═══════════════════════════════════════════════════════════════════ */
 export default function SettingsPage() {
-  const { user, logout } = useAuth();
+  const { user, logout, updateCurrency } = useAuth();
 
   if (!user) {
     return (
@@ -64,7 +101,7 @@ export default function SettingsPage() {
     );
   }
 
-  const joinDate      = "February 2026"; // placeholder until backend returns createdAt
+  const joinDate      = "February 2026";
   const providerLabel = user.provider === "GOOGLE" ? "Google OAuth2" : "Email & Password";
   const providerIcon  = user.provider === "GOOGLE" ? "🔵" : "✉️";
 
@@ -98,12 +135,13 @@ export default function SettingsPage() {
         <InfoRow label="Member since" value={joinDate} />
       </Section>
 
-      {/* ── Preferences (static for now) ── */}
+      {/* ── Preferences ── */}
       <Section title="Preferences" icon="⚙️">
-        <InfoRow label="Primary Currency" value="USD · US Dollar" />
-        <InfoRow label="Language"         value="English" />
-        <InfoRow label="Timezone"         value="Asia/Phnom_Penh (UTC+7)" />
-        <InfoRow label="Notifications"    value="Enabled" />
+        {/* ✅ Interactive currency switcher — calls API on click, updates user state instantly */}
+        <CurrencyRow current={user.preferredCurrency} onChange={updateCurrency} />
+        <InfoRow label="Language"      value="English" />
+        <InfoRow label="Timezone"      value="Asia/Phnom_Penh (UTC+7)" />
+        <InfoRow label="Notifications" value="Enabled" />
       </Section>
 
       {/* ── Security ── */}
@@ -123,10 +161,8 @@ export default function SettingsPage() {
           <h2 className="text-red-600 font-black text-base font-['Sora',sans-serif]">Account Actions</h2>
         </div>
         <div className="px-5 py-4 space-y-3">
-          <button
-            onClick={() => logout()}
-            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-red-200 text-red-500 hover:bg-red-50 hover:border-red-300 transition-all font-bold text-sm"
-          >
+          <button onClick={() => logout()}
+            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-red-200 text-red-500 hover:bg-red-50 hover:border-red-300 transition-all font-bold text-sm">
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                 d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />

@@ -1,10 +1,11 @@
 export interface AuthUser {
-  id: string;                           
+  id: string;
   email: string;
   name: string;
   avatar?: string;
   role: "USER" | "ADMIN";
   provider: "LOCAL" | "GOOGLE";
+  preferredCurrency: "USD" | "KHR";   
 }
 
 export interface LoginRequest {
@@ -16,4 +17,5 @@ export interface RegisterRequest {
   name: string;
   email: string;
   password: string;
+  preferredCurrency?: "USD" | "KHR"; 
 }

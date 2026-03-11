@@ -3,6 +3,7 @@
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { authService } from "../services/auth.service";
+import { userService } from "../services/user.service";
 import type { AuthUser } from "../types/auth.types";
 
 // ─── Types ────────────────────────────────────────────────────────
@@ -12,13 +13,13 @@ interface AuthContextType {
   error: string | null;
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (name: string, email: string, password: string) => Promise<void>;
+  register: (name: string, email: string, password: string, preferredCurrency?: "USD" | "KHR") => Promise<void>;
   loginWithGoogle: () => void;
   logout: () => Promise<void>;
   clearError: () => void;
+  updateCurrency: (currency: "USD" | "KHR") => Promise<void>;  // ✅ NEW
 }
 
-// Public routes that should never trigger a redirect to /login
 const PUBLIC_PATHS = ["/login", "/signup", "/forgot-password"];
 
 // ─── Context ──────────────────────────────────────────────────────
@@ -37,16 +38,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .then(setUser)
       .catch(() => {
         setUser(null);
-        // Only redirect to /login if we're on a protected route.
-        // This prevents the infinite loop: /login → me() fails → redirect /login → ...
         const isPublic = PUBLIC_PATHS.some(p => pathname.startsWith(p));
-        if (!isPublic) {
-          router.replace("/login");
-        }
+        if (!isPublic) router.replace("/login");
       })
       .finally(() => setLoading(false));
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // intentionally run once on mount only
+  }, []);
 
   const login = useCallback(async (email: string, password: string) => {
     setLoading(true);
@@ -62,11 +59,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [router]);
 
-  const register = useCallback(async (name: string, email: string, password: string) => {
+  // ✅ register now accepts optional preferredCurrency
+  const register = useCallback(async (
+    name: string,
+    email: string,
+    password: string,
+    preferredCurrency: "USD" | "KHR" = "USD",
+  ) => {
     setLoading(true);
     setError(null);
     try {
-      const u = await authService.register(name, email, password);
+      const u = await authService.register(name, email, password, preferredCurrency);
       setUser(u);
     } catch (err: any) {
       setError(err.message || "Registration failed");
@@ -93,6 +96,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const clearError = useCallback(() => setError(null), []);
 
+  // ✅ NEW: call API and sync user state — no page reload needed
+  const updateCurrency = useCallback(async (currency: "USD" | "KHR") => {
+    const updated = await userService.updatePreferredCurrency(currency);
+    setUser(updated);
+  }, []);
+
   return (
     <AuthContext.Provider value={{
       user,
@@ -104,6 +113,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       loginWithGoogle,
       logout,
       clearError,
+      updateCurrency,
     }}>
       {children}
     </AuthContext.Provider>

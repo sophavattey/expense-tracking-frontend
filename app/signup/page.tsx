@@ -4,19 +4,23 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
+import {
+  Wallet, BarChart3, ScanLine, Receipt, Users, Shield,
+  Eye, EyeOff, AlertCircle, CheckCircle2, ArrowRight
+} from "lucide-react";
 
-// ─── Password strength meter ──────────────────────────────────────────────────
+// ─── Password strength meter ──────────────────────────────────────
 function PasswordStrength({ password }: { password: string }) {
   const checks = [
-    { label: "8+ characters", pass: password.length >= 8 },
+    { label: "8+ characters",    pass: password.length >= 8 },
     { label: "Uppercase letter", pass: /[A-Z]/.test(password) },
-    { label: "Number", pass: /[0-9]/.test(password) },
-    { label: "Special character", pass: /[^A-Za-z0-9]/.test(password) },
+    { label: "Number",           pass: /[0-9]/.test(password) },
+    { label: "Special character",pass: /[^A-Za-z0-9]/.test(password) },
   ];
   const score = checks.filter((c) => c.pass).length;
-  const levels = ["", "Weak", "Fair", "Good", "Strong"];
-  const colors = ["", "bg-red-400", "bg-yellow-400", "bg-blue-400", "bg-green-500"];
-  const textColors = ["", "text-red-500", "text-yellow-500", "text-blue-500", "text-green-600"];
+  const levels    = ["", "Weak",    "Fair",       "Good",       "Strong"     ];
+  const colors    = ["", "bg-red-400", "bg-yellow-400", "bg-blue-400", "bg-green-500"];
+  const textColors= ["", "text-red-500","text-yellow-500","text-blue-500","text-green-600"];
   if (!password) return null;
   return (
     <div className="mt-2.5 space-y-2">
@@ -29,7 +33,10 @@ function PasswordStrength({ password }: { password: string }) {
         <div className="flex flex-wrap gap-x-3 gap-y-1">
           {checks.map((c) => (
             <span key={c.label} className={`text-[10px] flex items-center gap-1 transition-colors ${c.pass ? "text-green-500" : "text-blue-300"}`}>
-              <span>{c.pass ? "✓" : "·"}</span>{c.label}
+              {c.pass
+                ? <CheckCircle2 size={10} />
+                : <span className="text-[8px]">·</span>}
+              {c.label}
             </span>
           ))}
         </div>
@@ -39,8 +46,10 @@ function PasswordStrength({ password }: { password: string }) {
   );
 }
 
-// ─── Password input with toggle ───────────────────────────────────────────────
-function PasswordInput({ value, onChange, placeholder, id }: { value: string; onChange: (v: string) => void; placeholder?: string; id?: string }) {
+// ─── Password input with toggle ───────────────────────────────────
+function PasswordInput({ value, onChange, placeholder, id }: {
+  value: string; onChange: (v: string) => void; placeholder?: string; id?: string;
+}) {
   const [show, setShow] = useState(false);
   return (
     <div className="relative">
@@ -52,25 +61,19 @@ function PasswordInput({ value, onChange, placeholder, id }: { value: string; on
       <button type="button" onClick={() => setShow(!show)}
         className="absolute right-3 top-1/2 -translate-y-1/2 text-blue-300 hover:text-blue-500 transition-colors"
         aria-label={show ? "Hide password" : "Show password"}>
-        {show ? (
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
-          </svg>
-        ) : (
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-          </svg>
-        )}
+        {show ? <EyeOff size={16} /> : <Eye size={16} />}
       </button>
     </div>
   );
 }
 
-function FeatureItem({ icon, text }: { icon: string; text: string }) {
+// ─── Left panel feature row ───────────────────────────────────────
+function FeatureItem({ icon: Icon, text }: { icon: React.ElementType; text: string }) {
   return (
     <div className="flex items-center gap-3">
-      <div className="w-8 h-8 rounded-xl bg-white/15 border border-white/20 flex items-center justify-center text-base shrink-0">{icon}</div>
+      <div className="w-8 h-8 rounded-xl bg-white/15 border border-white/20 flex items-center justify-center shrink-0">
+        <Icon size={15} className="text-blue-100" strokeWidth={1.8} />
+      </div>
       <span className="text-blue-100 text-sm">{text}</span>
     </div>
   );
@@ -87,7 +90,7 @@ function MiniChart() {
   );
 }
 
-// ─── Signup Page ──────────────────────────────────────────────────────────────
+// ─── Signup Page ──────────────────────────────────────────────────
 export default function SignupPage() {
   const [name, setName]         = useState("");
   const [email, setEmail]       = useState("");
@@ -104,10 +107,10 @@ export default function SignupPage() {
     if (!agreed) return;
     clearError();
     try {
-      await register(name, email, password);
+      await register(name, email, password, currency);
       setStep("success");
     } catch {
-      // error is set in AuthContext, displayed below
+      // error displayed via AuthContext
     }
   };
 
@@ -146,7 +149,7 @@ export default function SignupPage() {
 
       <div className="min-h-screen flex">
 
-        {/* ── Left panel ───────────────────────────────────────────────── */}
+        {/* ── Left panel ────────────────────────────────────────────── */}
         <div className="hidden lg:flex lg:w-[42%] xl:w-[38%] relative bg-blue-600 flex-col overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-br from-blue-800 via-blue-600 to-blue-500" />
           <div className="absolute top-0 right-0 w-96 h-96 bg-blue-400/30 rounded-full blur-3xl translate-x-1/3 -translate-y-1/3" />
@@ -155,12 +158,11 @@ export default function SignupPage() {
             style={{ backgroundImage: "linear-gradient(white 1px, transparent 1px), linear-gradient(90deg, white 1px, transparent 1px)", backgroundSize: "40px 40px" }} />
           <MiniChart />
 
+          {/* Logo */}
           <div className="relative z-10 p-10">
             <Link href="/" className="inline-flex items-center gap-2.5">
               <div className="w-9 h-9 rounded-xl bg-white/20 backdrop-blur flex items-center justify-center border border-white/30">
-                <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
+                <Wallet size={18} className="text-white" strokeWidth={2} />
               </div>
               <span className="text-white font-black text-xl font-['Sora',sans-serif] tracking-tight">
                 Fin<span className="text-blue-200">Set</span>
@@ -168,57 +170,56 @@ export default function SignupPage() {
             </Link>
           </div>
 
+          {/* Content */}
           <div className="relative z-10 flex-1 flex flex-col justify-center px-10 pb-16">
             <div className="mb-8">
-              <span className="inline-block bg-white/15 border border-white/20 text-blue-100 text-xs font-bold uppercase tracking-widest px-3 py-1.5 rounded-full mb-4">
-                🇰🇭 Cambodia's #1 Finance App
-              </span>
+              <div className="inline-flex items-center gap-2 bg-white/15 border border-white/20 text-blue-100 text-xs font-bold uppercase tracking-widest px-3 py-1.5 rounded-full mb-4">
+                <Users size={12} strokeWidth={2} />
+                Personal, Couple &amp; Family
+              </div>
               <h2 className="text-white font-black text-3xl font-['Sora',sans-serif] leading-tight mb-3">
-                Join 2,800+<br />Cambodians<br />Already Saving
+                Plan Together,<br />Spend Smarter
               </h2>
               <p className="text-blue-200 text-sm leading-relaxed">
                 Take 30 seconds to set up your account and start tracking your money today.
               </p>
             </div>
+
             <div className="space-y-3.5">
-              <FeatureItem icon="📱" text="Scan KHQR receipts in seconds" />
-              <FeatureItem icon="💱" text="Track KHR & USD simultaneously" />
-              <FeatureItem icon="🎯" text="Set budgets, get real-time alerts" />
-              <FeatureItem icon="📊" text="Beautiful monthly spending reports" />
-              <FeatureItem icon="🔒" text="Bank-grade security, always private" />
+              <FeatureItem icon={ScanLine}  text="Scan KHQR receipts in seconds" />
+              <FeatureItem icon={Receipt}   text="Track KHR & USD simultaneously" />
+              <FeatureItem icon={BarChart3} text="Set budgets per category, get alerts" />
+              <FeatureItem icon={Users}     text="Share finances with partner or family" />
+              <FeatureItem icon={Shield}    text="Bank-grade security, always private" />
             </div>
+
+            {/* Social proof — Lucide Users icon instead of emoji avatars */}
             <div className="mt-10 inline-flex items-center gap-3 bg-white/10 border border-white/20 rounded-2xl px-4 py-3 float-pill w-fit">
-              <div className="flex -space-x-2">
-                {["🧑‍💼","👩‍🎓","👨‍🍳"].map((e, i) => (
-                  <div key={i} className="w-7 h-7 rounded-full bg-blue-400 border-2 border-blue-600 flex items-center justify-center text-xs">{e}</div>
-                ))}
+              <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
+                <Users size={18} className="text-white" strokeWidth={1.8} />
               </div>
               <div>
                 <p className="text-white text-xs font-bold">Trusted by 2,800+ users</p>
-                <p className="text-blue-200 text-[10px]">⭐⭐⭐⭐⭐ Average 4.9/5</p>
+                <p className="text-blue-200 text-[10px]">Average 4.9 / 5 rating</p>
               </div>
             </div>
           </div>
 
-          <div className="relative z-10 p-10 flex items-center gap-3">
-            <span className="text-blue-300 text-xs">Available in</span>
-            <span className="bg-white/15 text-white text-xs font-bold px-2.5 py-1 rounded-lg border border-white/20">EN</span>
-            <span className="bg-white/15 text-white text-xs font-bold px-2.5 py-1 rounded-lg border border-white/20">ខ្មែរ</span>
-          </div>
+          {/* Bottom spacer — language switcher removed */}
+          <div className="relative z-10 p-10" />
         </div>
 
-        {/* ── Right panel ──────────────────────────────────────────────── */}
+        {/* ── Right panel ───────────────────────────────────────────── */}
         <div className="flex-1 flex items-center justify-center px-6 py-10 bg-blue-50 overflow-y-auto">
           <div className="w-full max-w-[440px]">
 
             {step === "success" ? (
+              /* ── Success state ── */
               <div className="text-center pop-in">
                 <div className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-6 shadow-lg shadow-green-200">
-                  <svg className="w-10 h-10 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                  </svg>
+                  <CheckCircle2 size={40} className="text-green-500" strokeWidth={1.8} />
                 </div>
-                <h2 className="text-3xl font-black text-blue-800 font-['Sora',sans-serif] mb-2">You're in! 🎉</h2>
+                <h2 className="text-3xl font-black text-blue-800 font-['Sora',sans-serif] mb-2">You're in!</h2>
                 <p className="text-blue-400 mb-8">
                   Welcome to FinSet, <strong className="text-blue-600">{name || "friend"}</strong>!<br />
                   Your account has been created successfully.
@@ -226,9 +227,7 @@ export default function SignupPage() {
                 <Link href="/dashboard"
                   className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold px-8 py-3.5 rounded-2xl transition-all hover:shadow-xl hover:shadow-blue-600/30 hover:-translate-y-0.5">
                   Go to Dashboard
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                  </svg>
+                  <ArrowRight size={16} />
                 </Link>
               </div>
             ) : (
@@ -236,9 +235,7 @@ export default function SignupPage() {
                 {/* Mobile logo */}
                 <div className="lg:hidden flex items-center gap-2 mb-8">
                   <div className="w-8 h-8 rounded-xl bg-blue-600 flex items-center justify-center">
-                    <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
+                    <Wallet size={15} className="text-white" strokeWidth={2} />
                   </div>
                   <span className="text-blue-800 font-black text-xl font-['Sora',sans-serif]">FinSet</span>
                 </div>
@@ -251,17 +248,14 @@ export default function SignupPage() {
                   </p>
                 </div>
 
-                {/* Error banner */}
                 {error && (
                   <div className="form-in mb-4 flex items-center gap-3 bg-red-50 border border-red-200 text-red-600 text-sm px-4 py-3 rounded-xl">
-                    <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
+                    <AlertCircle size={16} className="shrink-0" />
                     {error}
                   </div>
                 )}
 
-                {/* Google button */}
+                {/* Google */}
                 <div className="form-in-1 mb-5">
                   <button onClick={handleGoogle} disabled={loading}
                     className="w-full flex items-center justify-center gap-3 bg-white border border-blue-200 hover:border-blue-300 text-blue-700 font-semibold text-sm py-3.5 rounded-xl transition-all hover:shadow-md hover:shadow-blue-100 active:scale-[0.98] disabled:opacity-60 disabled:cursor-wait">
@@ -289,6 +283,7 @@ export default function SignupPage() {
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-4">
+                  {/* Name */}
                   <div className="form-in-3">
                     <label htmlFor="name" className="block text-blue-700 text-xs font-bold uppercase tracking-widest mb-1.5">Full Name</label>
                     <input id="name" type="text" value={name} onChange={(e) => setName(e.target.value)}
@@ -296,6 +291,7 @@ export default function SignupPage() {
                       className="w-full px-4 py-3 rounded-xl border border-blue-100 bg-blue-50/50 text-blue-800 placeholder-blue-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all" />
                   </div>
 
+                  {/* Email */}
                   <div className="form-in-4">
                     <label htmlFor="email" className="block text-blue-700 text-xs font-bold uppercase tracking-widest mb-1.5">Email Address</label>
                     <input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)}
@@ -303,36 +299,44 @@ export default function SignupPage() {
                       className="w-full px-4 py-3 rounded-xl border border-blue-100 bg-blue-50/50 text-blue-800 placeholder-blue-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all" />
                   </div>
 
+                  {/* Password */}
                   <div className="form-in-4">
                     <label htmlFor="password" className="block text-blue-700 text-xs font-bold uppercase tracking-widest mb-1.5">Password</label>
                     <PasswordInput id="password" value={password} onChange={setPassword} placeholder="Create a strong password" />
                     <PasswordStrength password={password} />
                   </div>
 
+                  {/* Currency picker — symbol only, no flag emoji */}
                   <div className="form-in-5">
                     <label className="block text-blue-700 text-xs font-bold uppercase tracking-widest mb-2">Primary Currency</label>
                     <div className="grid grid-cols-2 gap-3">
                       {(["USD", "KHR"] as const).map((c) => (
                         <button key={c} type="button" onClick={() => setCurrency(c)}
                           className={`flex items-center gap-3 px-4 py-3 rounded-xl border-2 text-sm font-semibold transition-all ${
-                            currency === c ? "border-blue-500 bg-blue-600 text-white shadow-lg shadow-blue-600/20" : "border-blue-100 bg-white text-blue-600 hover:border-blue-200"
+                            currency === c
+                              ? "border-blue-500 bg-blue-600 text-white shadow-lg shadow-blue-600/20"
+                              : "border-blue-100 bg-white text-blue-600 hover:border-blue-200"
                           }`}>
-                          <span className="text-lg">{c === "USD" ? "🇺🇸" : "🇰🇭"}</span>
+                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 font-black text-base
+                            ${currency === c ? "bg-white/20 text-white" : "bg-blue-50 text-blue-600"}`}>
+                            {c === "USD" ? "$" : "៛"}
+                          </div>
                           <div className="text-left">
                             <p className={`font-bold text-sm ${currency === c ? "text-white" : "text-blue-800"}`}>{c}</p>
-                            <p className={`text-[10px] ${currency === c ? "text-blue-200" : "text-blue-400"}`}>{c === "USD" ? "US Dollar" : "Cambodian Riel"}</p>
+                            <p className={`text-[10px] ${currency === c ? "text-blue-200" : "text-blue-400"}`}>
+                              {c === "USD" ? "US Dollar" : "Cambodian Riel"}
+                            </p>
                           </div>
-                          {currency === c && (
-                            <svg className="w-4 h-4 ml-auto text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                            </svg>
-                          )}
+                          {currency === c && <CheckCircle2 size={15} className="ml-auto text-white shrink-0" />}
                         </button>
                       ))}
                     </div>
-                    <p className="text-blue-300 text-[10px] mt-1.5">You can use both KHR and USD at any time. This is just your default view.</p>
+                    <p className="text-blue-300 text-[10px] mt-1.5">
+                      You can use both KHR and USD at any time. This is just your default view.
+                    </p>
                   </div>
 
+                  {/* Terms */}
                   <div className="form-in-6 flex items-start gap-2.5">
                     <input id="agree" type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)}
                       className="w-4 h-4 mt-0.5 rounded border-blue-200 text-blue-600 focus:ring-blue-500 accent-blue-600 shrink-0" />
@@ -344,6 +348,7 @@ export default function SignupPage() {
                     </label>
                   </div>
 
+                  {/* Submit */}
                   <div className="form-in-7 pt-1">
                     <button type="submit" disabled={loading || !agreed}
                       className="w-full shimmer-btn text-white font-bold py-3.5 rounded-xl transition-all hover:shadow-xl hover:shadow-blue-600/30 hover:-translate-y-0.5 active:scale-[0.98] active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0">
@@ -355,24 +360,28 @@ export default function SignupPage() {
                           </svg>
                           Creating your account…
                         </span>
-                      ) : "Create Free Account →"}
+                      ) : (
+                        <span className="flex items-center justify-center gap-2">
+                          Create Free Account
+                          <ArrowRight size={16} />
+                        </span>
+                      )}
                     </button>
                   </div>
                 </form>
 
-                <div className="mt-5 flex items-center justify-center gap-2 text-blue-300 text-xs">
-                  <svg className="w-3.5 h-3.5 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                  </svg>
-                  Free forever &nbsp;·&nbsp;
-                  <svg className="w-3.5 h-3.5 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                  </svg>
-                  No credit card &nbsp;·&nbsp;
-                  <svg className="w-3.5 h-3.5 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                  </svg>
-                  Setup in 30 sec
+                {/* Trust row */}
+                <div className="mt-5 flex items-center justify-center gap-4 text-blue-300 text-xs">
+                  {[
+                    { icon: CheckCircle2, label: "Free forever"    },
+                    { icon: Shield,       label: "No credit card"  },
+                    { icon: Users,        label: "Family-friendly" },
+                  ].map(({ icon: Icon, label }) => (
+                    <span key={label} className="flex items-center gap-1">
+                      <Icon size={11} className="text-green-400" strokeWidth={2.5} />
+                      {label}
+                    </span>
+                  ))}
                 </div>
               </>
             )}

@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import Link from "next/link";
-import { TrendingDown, TrendingUp, PiggyBank, ScanLine, type LucideIcon } from "lucide-react";
+import { TrendingDown, TrendingUp, PiggyBank, ScanLine, ChevronLeft, ChevronRight, type LucideIcon } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useExpenses } from "@/hooks/useExpenses";
 import { useBudgets } from "@/hooks/useBudgets";
@@ -14,17 +14,72 @@ import type { BudgetStatus } from "@/types/budget.types";
 /* ─── constants ─────────────────────────────────────────────────── */
 const KHR_RATE  = 4000;
 const SHORT_MON = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const TODAY     = new Date();
 
 function fmtUSD(n: number) { return `$${n.toFixed(2)}`; }
+function fmtKHR(n: number) { return `៛${Math.round(n).toLocaleString()}`; }
+function fmtPrimary(usd: number, pref: "USD" | "KHR")   { return pref === "KHR" ? fmtKHR(usd * KHR_RATE) : fmtUSD(usd); }
+function fmtSecondary(usd: number, pref: "USD" | "KHR") { return pref === "KHR" ? fmtUSD(usd) : fmtKHR(usd * KHR_RATE); }
+
 function fmtDate(iso: string) {
-  const d     = new Date(iso + "T00:00:00");
-  const today = new Date();
+  const d = new Date(iso + "T00:00:00");
   const isToday =
-    d.getDate()     === today.getDate()     &&
-    d.getMonth()    === today.getMonth()    &&
-    d.getFullYear() === today.getFullYear();
+    d.getDate()     === TODAY.getDate()     &&
+    d.getMonth()    === TODAY.getMonth()    &&
+    d.getFullYear() === TODAY.getFullYear();
   if (isToday) return "Today";
   return `${SHORT_MON[d.getMonth()]} ${d.getDate()}`;
+}
+
+/** Returns true if year/month is the current calendar month */
+function isCurrentMonth(year: number, month: number) {
+  return year === TODAY.getFullYear() && month === TODAY.getMonth() + 1;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   MONTH NAVIGATOR
+═══════════════════════════════════════════════════════════════════ */
+function MonthNavigator({
+  year, month, onChange
+}: {
+  year: number; month: number;
+  onChange: (year: number, month: number) => void;
+}) {
+  const isCurrent = isCurrentMonth(year, month);
+  const label = new Date(year, month - 1, 1).toLocaleDateString("en-US", { month: "long", year: "numeric" });
+
+  const goBack = () => {
+    if (month === 1) onChange(year - 1, 12);
+    else             onChange(year, month - 1);
+  };
+  const goForward = () => {
+    if (isCurrent) return;
+    if (month === 12) onChange(year + 1, 1);
+    else              onChange(year, month + 1);
+  };
+
+  return (
+    <div className="flex items-center gap-1 bg-white/15 backdrop-blur-sm border border-white/20 rounded-xl px-1 py-1">
+      <button onClick={goBack}
+        className="w-7 h-7 rounded-lg flex items-center justify-center text-white/70 hover:text-white hover:bg-white/15 transition-all">
+        <ChevronLeft size={15} strokeWidth={2.5} />
+      </button>
+      <span className="text-white text-xs font-bold px-2 min-w-[120px] text-center">{label}</span>
+      <button onClick={goForward} disabled={isCurrent}
+        className={`w-7 h-7 rounded-lg flex items-center justify-center transition-all
+          ${isCurrent
+            ? "text-white/20 cursor-not-allowed"
+            : "text-white/70 hover:text-white hover:bg-white/15"}`}>
+        <ChevronRight size={15} strokeWidth={2.5} />
+      </button>
+      {!isCurrent && (
+        <button onClick={() => onChange(TODAY.getFullYear(), TODAY.getMonth() + 1)}
+          className="ml-1 text-[10px] font-bold text-blue-200 hover:text-white bg-white/10 hover:bg-white/20 px-2 py-1 rounded-lg transition-all">
+          Today
+        </button>
+      )}
+    </div>
+  );
 }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -32,7 +87,7 @@ function fmtDate(iso: string) {
 ═══════════════════════════════════════════════════════════════════ */
 interface DonutSlice { cat: string; pct: number; color: string; totalUsd: number }
 
-function DonutChart({ slices, totalUsd }: { slices: DonutSlice[]; totalUsd: number }) {
+function DonutChart({ slices, totalUsd, pref }: { slices: DonutSlice[]; totalUsd: number; pref: "USD" | "KHR" }) {
   const [hovered, setHovered] = useState<number | null>(null);
   const size = 200, r = 72, stroke = 24, circ = 2 * Math.PI * r;
   let offset = 0;
@@ -74,7 +129,8 @@ function DonutChart({ slices, totalUsd }: { slices: DonutSlice[]; totalUsd: numb
           ) : (
             <>
               <p className="text-blue-400 text-xs uppercase tracking-wider font-semibold">Total</p>
-              <p className="text-blue-800 font-black text-2xl leading-none mt-0.5">{fmtUSD(totalUsd)}</p>
+              <p className="text-blue-800 font-black text-xl leading-none mt-0.5">{fmtPrimary(totalUsd, pref)}</p>
+              <p className="text-blue-300 text-[10px] mt-0.5">{fmtSecondary(totalUsd, pref)}</p>
             </>
           )}
         </div>
@@ -85,30 +141,47 @@ function DonutChart({ slices, totalUsd }: { slices: DonutSlice[]; totalUsd: numb
 
 /* ═══════════════════════════════════════════════════════════════════
    SPENDING BAR CHART
+   — selectedIdx highlights the bar matching the selected month
 ═══════════════════════════════════════════════════════════════════ */
-function SpendingChart({ data }: { data: { label: string; amount: number }[] }) {
-  const lastIdx = data.length - 1;
-  const [hovered, setHovered] = useState<number | null>(lastIdx);
+function SpendingChart({
+  data, pref, selectedIdx, onSelect
+}: {
+  data: { label: string; amount: number }[];
+  pref: "USD" | "KHR";
+  selectedIdx: number;
+  onSelect: (idx: number) => void;
+}) {
+  const [hovered, setHovered] = useState<number | null>(null);
   const max = Math.max(...data.map(d => d.amount), 1);
 
   return (
     <div className="flex items-end gap-1.5 h-36 w-full mt-4">
       {data.map((d, i) => {
-        const h = (d.amount / max) * 100;
-        const isHov = hovered === i, isCur = i === lastIdx;
+        const h      = (d.amount / max) * 100;
+        const isHov  = hovered === i;
+        const isSel  = i === selectedIdx;
+        const isCur  = i === data.length - 1; // rightmost = current calendar month
         return (
           <div key={i} className="flex-1 flex flex-col items-center gap-0.5 cursor-pointer"
-            onMouseEnter={() => setHovered(i)} onMouseLeave={() => setHovered(null)}>
-            {isHov && (
-              <div className="bg-blue-800 text-white text-[9px] font-bold px-2 py-1 rounded-lg whitespace-nowrap leading-none mb-1 shadow-lg">
-                {fmtUSD(d.amount)}
+            onMouseEnter={() => setHovered(i)} onMouseLeave={() => setHovered(null)}
+            onClick={() => onSelect(i)}>
+            {(isHov || isSel) && (
+              <div className={`text-white text-[9px] font-bold px-2 py-1 rounded-lg whitespace-nowrap leading-none mb-1 shadow-lg
+                ${isSel ? "bg-blue-700" : "bg-blue-800"}`}>
+                {fmtPrimary(d.amount, pref)}
               </div>
             )}
             <div className="w-full flex items-end" style={{ height: "96px" }}>
-              <div className={`w-full rounded-t transition-all duration-300 ${isCur ? "bg-blue-600" : isHov ? "bg-blue-400" : "bg-blue-100"}`}
-                style={{ height: `${h}%`, minHeight: d.amount > 0 ? "4px" : "0px" }} />
+              <div
+                className={`w-full rounded-t transition-all duration-300
+                  ${isSel  ? "bg-blue-600 ring-2 ring-blue-400 ring-offset-1" :
+                    isCur  ? "bg-blue-300" :
+                    isHov  ? "bg-blue-400" : "bg-blue-100"}`}
+                style={{ height: `${h}%`, minHeight: d.amount > 0 ? "4px" : "0px" }}
+              />
             </div>
-            <span className={`text-[8px] font-medium leading-none ${isCur ? "text-blue-600 font-bold" : isHov ? "text-blue-500" : "text-blue-300"}`}>
+            <span className={`text-[8px] font-medium leading-none
+              ${isSel ? "text-blue-600 font-black" : isHov ? "text-blue-500" : "text-blue-300"}`}>
               {d.label}
             </span>
           </div>
@@ -121,8 +194,8 @@ function SpendingChart({ data }: { data: { label: string; amount: number }[] }) 
 /* ═══════════════════════════════════════════════════════════════════
    STAT CARD
 ═══════════════════════════════════════════════════════════════════ */
-function StatCard({ label, value, sub, change, positive, Icon, iconColor, accent, delay }: {
-  label: string; value: string; sub: string; change: string;
+function StatCard({ label, value, sub, subDim, change, positive, Icon, iconColor, accent, delay }: {
+  label: string; value: string; sub: string; subDim?: string; change: string;
   positive: boolean; Icon: LucideIcon; iconColor: string; accent: string; delay: number;
 }) {
   const [vis, setVis] = useState(false);
@@ -138,7 +211,8 @@ function StatCard({ label, value, sub, change, positive, Icon, iconColor, accent
           <Icon size={18} strokeWidth={2} />
         </div>
       </div>
-      <p className="text-blue-800 font-black text-2xl font-['Sora',sans-serif] leading-none mb-1 truncate">{value}</p>
+      <p className="text-blue-800 font-black text-2xl font-['Sora',sans-serif] leading-none mb-0.5 truncate">{value}</p>
+      {subDim && <p className="text-blue-300 text-xs mb-1">{subDim}</p>}
       <p className="text-blue-300 text-xs mb-3">{sub}</p>
       <div className={`inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full ${positive ? "bg-green-50 text-green-600" : "bg-red-50 text-red-500"}`}>
         {positive ? "↑" : "↓"} {change}
@@ -148,15 +222,13 @@ function StatCard({ label, value, sub, change, positive, Icon, iconColor, accent
 }
 
 /* ═══════════════════════════════════════════════════════════════════
-   BUDGET BAR  — uses colour system
+   BUDGET BAR
 ═══════════════════════════════════════════════════════════════════ */
-function BudgetBar({ status }: { status: BudgetStatus }) {
-  const pct      = status.limitUsd > 0
-    ? Math.round((status.spentUsd / status.limitUsd) * 100)
-    : 0;
-  const color    = getBudgetColor(pct);
-  const catName  = status.category?.name  ?? "Overall";
-  const catIcon  = status.category?.icon  ?? "📊";
+function BudgetBar({ status, pref }: { status: BudgetStatus; pref: "USD" | "KHR" }) {
+  const pct     = status.limitUsd > 0 ? Math.round((status.spentUsd / status.limitUsd) * 100) : 0;
+  const color   = getBudgetColor(pct);
+  const catName = status.category?.name ?? "Overall";
+  const catIcon = status.category?.icon ?? "📊";
 
   return (
     <div>
@@ -167,22 +239,21 @@ function BudgetBar({ status }: { status: BudgetStatus }) {
         </div>
         <div className="flex items-center gap-1.5">
           <color.Icon size={12} strokeWidth={2.5} className={color.iconClass} />
-          <span className={`text-sm font-bold ${color.textClass}`}>{fmtUSD(status.spentUsd)}</span>
-          <span className="text-blue-200 text-xs">/{fmtUSD(status.limitUsd)}</span>
+          <span className={`text-sm font-bold ${color.textClass}`}>{fmtPrimary(status.spentUsd, pref)}</span>
+          <span className="text-blue-200 text-xs">/{fmtPrimary(status.limitUsd, pref)}</span>
         </div>
       </div>
       <div className="w-full bg-blue-50 rounded-full h-2">
         <div className={`h-2 rounded-full transition-all duration-700 ${color.barClass}`}
           style={{ width: `${Math.min(pct, 100)}%` }} />
       </div>
-      {/* Status comment line */}
       <div className="flex items-center justify-between mt-1">
         <p className={`flex items-center gap-1 text-[10px] font-semibold ${color.textClass}`}>
           <color.Icon size={11} strokeWidth={2.5} />
-          {color.status === "over"    && `Over budget by ${fmtUSD(Math.abs(status.remainingUsd))}`}
-          {color.status === "danger"  && `Only ${fmtUSD(status.remainingUsd)} left — very close!`}
-          {color.status === "warning" && `${fmtUSD(status.remainingUsd)} remaining`}
-          {color.status === "safe"    && `${fmtUSD(status.remainingUsd)} remaining`}
+          {color.status === "over"    && `Over by ${fmtPrimary(Math.abs(status.remainingUsd), pref)}`}
+          {color.status === "danger"  && `Only ${fmtPrimary(status.remainingUsd, pref)} left!`}
+          {color.status === "warning" && `${fmtPrimary(status.remainingUsd, pref)} remaining`}
+          {color.status === "safe"    && `${fmtPrimary(status.remainingUsd, pref)} remaining`}
         </p>
         <span className={`text-[10px] font-bold ${color.textClass}`}>{pct}%</span>
       </div>
@@ -243,50 +314,141 @@ function TxRow({ expense, delay }: { expense: Expense; delay: number }) {
 ═══════════════════════════════════════════════════════════════════ */
 export default function DashboardPage() {
   const { user } = useAuth();
-  const now = new Date();
+  const pref = user?.preferredCurrency ?? "USD";
 
-  const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
-  const { expenses, loading: expLoading } = useExpenses({ size: 200, from: monthStart });
+  /* ── Selected month (defaults to current) ── */
+  const [selYear,  setSelYear]  = useState(TODAY.getFullYear());
+  const [selMonth, setSelMonth] = useState(TODAY.getMonth() + 1);
+  const isPast = !isCurrentMonth(selYear, selMonth);
 
+  const handleMonthChange = useCallback((y: number, m: number) => {
+    setSelYear(y);
+    setSelMonth(m);
+    setTxFilter("All");
+    setTxCount(5);
+  }, []);
+
+  /* ── Date range for selected month ── */
+  const monthStart = `${selYear}-${String(selMonth).padStart(2, "0")}-01`;
+  const lastDay    = new Date(selYear, selMonth, 0).getDate();
+  const monthEnd   = `${selYear}-${String(selMonth).padStart(2, "0")}-${lastDay}`;
+
+  /* ── Data fetching ── */
+  const { expenses, loading: expLoading } = useExpenses({ size: 200, from: monthStart, to: monthEnd });
+  // Budgets always reflect current period — hide for past months
   const { summary: budgetSummary, loading: budgetLoading } = useBudgets();
 
   const [monthlySummary, setMonthlySummary] = useState<MonthlySummary | null>(null);
-  const [chartData,      setChartData]      = useState<{ label: string; amount: number }[]>([]);
+  const [chartData,      setChartData]      = useState<{ label: string; amount: number; year: number; month: number }[]>([]);
   const [chartLoading,   setChartLoading]   = useState(true);
+  const [summaryLoading, setSummaryLoading] = useState(true);
 
+  /* ── Fetch 13-month chart history centered on selected month ── */
+  // Window: 6 before → selected (center, index 6) → 6 after
+  // Re-runs whenever the selected month changes
   useEffect(() => {
     let cancelled = false;
-    const fetchAll = async () => {
-      try {
-        const monthlyPromise = expenseService.getSummary({ year: now.getFullYear(), month: now.getMonth() + 1 });
-        const historyPromises = Array.from({ length: 12 }, (_, i) => {
-          const d = new Date(now.getFullYear(), now.getMonth() - 11 + i, 1);
-          return expenseService
-            .getSummary({ year: d.getFullYear(), month: d.getMonth() + 1 })
-            .then(s => ({ label: SHORT_MON[d.getMonth()], amount: s.totalSpentUsd ?? 0 }))
-            .catch(() => ({ label: SHORT_MON[d.getMonth()], amount: 0 }));
-        });
-        const [monthly, ...history] = await Promise.all([monthlyPromise, ...historyPromises]);
-        if (!cancelled) { setMonthlySummary(monthly); setChartData(history); }
-      } catch { /* degrade gracefully */ }
-      finally { if (!cancelled) setChartLoading(false); }
+    setChartLoading(true);
+    const fetchHistory = async () => {
+      const promises = Array.from({ length: 13 }, (_, i) => {
+        const d = new Date(selYear, selMonth - 1 - 6 + i, 1);
+        const y = d.getFullYear(), m = d.getMonth() + 1;
+        return expenseService
+          .getSummary({ year: y, month: m })
+          .then(s => ({ label: SHORT_MON[d.getMonth()], amount: s.totalSpentUsd ?? 0, year: y, month: m }))
+          .catch(() => ({ label: SHORT_MON[d.getMonth()], amount: 0, year: y, month: m }));
+      });
+      const history = await Promise.all(promises);
+      if (!cancelled) { setChartData(history); setChartLoading(false); }
     };
-    fetchAll();
+    fetchHistory();
     return () => { cancelled = true; };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [selYear, selMonth]);
 
-  /* ── Derived ── */
-  const totalSpentUsd  = monthlySummary?.totalSpentUsd ?? expenses.reduce((s, e) => s + e.amountBase, 0);
-  const digitalCount   = expenses.filter(e => e.paymentMethod === "KHQR" || e.paymentMethod === "APP").length;
-  const budgetLimitUsd = budgetSummary?.totalLimitUsd ?? 0;
-  const budgetSpentUsd = budgetSummary?.totalSpentUsd ?? 0;
-  const budgetRawPct   = budgetLimitUsd > 0 ? Math.round((budgetSpentUsd / budgetLimitUsd) * 100) : 0;
-  const overallColor   = getBudgetColor(budgetRawPct);
+  /* ── Fetch summary for selected month ── */
+  useEffect(() => {
+    let cancelled = false;
+    setSummaryLoading(true);
+    expenseService
+      .getSummary({ year: selYear, month: selMonth })
+      .then(s => { if (!cancelled) setMonthlySummary(s); })
+      .catch(() => { if (!cancelled) setMonthlySummary(null); })
+      .finally(() => { if (!cancelled) setSummaryLoading(false); });
+    return () => { cancelled = true; };
+  }, [selYear, selMonth]);
 
-  const curMonthAmt  = chartData[chartData.length - 1]?.amount ?? 0;
-  const prevMonthAmt = chartData[chartData.length - 2]?.amount ?? 0;
-  const momDiff      = prevMonthAmt > 0 ? Math.round(((curMonthAmt - prevMonthAmt) / prevMonthAmt) * 100) : 0;
+  /* ── Chart: selected month is always center bar (index 6) ── */
+  const selectedChartIdx = 6;
+
+  /* ── Clicking a bar changes selected month ── */
+  const handleBarSelect = useCallback((idx: number) => {
+    const bar = chartData[idx];
+    if (bar) handleMonthChange(bar.year, bar.month);
+  }, [chartData, handleMonthChange]);
+
+  /* ── Derived values ── */
+  const totalSpentUsd = monthlySummary?.totalSpentUsd ?? expenses.reduce((s, e) => s + e.amountBase, 0);
+  const digitalCount  = expenses.filter(e => e.paymentMethod === "KHQR" || e.paymentMethod === "APP").length;
+
+  /**
+   * Budget figures:
+   * - Current month  → use live useBudgets() data (real-time period tracking)
+   * - Past month     → rebuild BudgetStatus[] from budget limits + actual expenses
+   *                    for that month, so spent/remaining reflect historical reality
+   */
+  const historicalStatuses: BudgetStatus[] = useMemo(() => {
+    if (!isPast || !budgetSummary) return [];
+
+    // How many periods fit in the selected month — scales the limit correctly:
+    //   MONTHLY → 1          (the whole month is one period)
+    //   WEEKLY  → weeks that overlap this month (usually 4–5)
+    //   DAILY   → days in the month (28–31)
+    const daysInMonth  = new Date(selYear, selMonth, 0).getDate();
+    const periodCount  = (period: BudgetStatus["period"]) => {
+      if (period === "MONTHLY") return 1;
+      if (period === "DAILY")   return daysInMonth;
+      // WEEKLY: count Mondays in this month (= number of full/partial weeks)
+      let mondays = 0;
+      for (let d = 1; d <= daysInMonth; d++) {
+        if (new Date(selYear, selMonth - 1, d).getDay() === 1) mondays++;
+      }
+      return mondays || 4; // fallback to 4 if something goes wrong
+    };
+
+    return budgetSummary.statuses.map(s => {
+      const scaledLimit = s.limitUsd * periodCount(s.period);
+      const spent       = expenses
+        .filter(e => s.category === null || e.category.id === s.category?.id)
+        .reduce((sum, e) => sum + e.amountBase, 0);
+      const remaining   = scaledLimit - spent;
+      const pct         = scaledLimit > 0 ? Math.round((spent / scaledLimit) * 100) : 0;
+      return {
+        ...s,
+        limitUsd:     scaledLimit,
+        limitKhr:     Math.round(scaledLimit * KHR_RATE),
+        spentUsd:     spent,
+        spentKhr:     Math.round(spent * KHR_RATE),
+        remainingUsd: remaining,
+        remainingKhr: Math.round(remaining * KHR_RATE),
+        percentage:   pct,
+        isOver:       spent > scaledLimit,
+      };
+    });
+  }, [isPast, budgetSummary, expenses, selYear, selMonth]);
+
+  const activeBudgetStatuses = isPast ? historicalStatuses : (budgetSummary?.statuses ?? []);
+
+  // Totals — only MONTHLY budgets, matching the selected month view
+  const monthlyStatuses = activeBudgetStatuses.filter(s => s.period === "MONTHLY");
+  const budgetLimitUsd  = monthlyStatuses.reduce((s, b) => s + b.limitUsd,  0);
+  const budgetSpentUsd  = monthlyStatuses.reduce((s, b) => s + b.spentUsd,  0);
+  const budgetRawPct    = budgetLimitUsd > 0 ? Math.round((budgetSpentUsd / budgetLimitUsd) * 100) : 0;
+  const overallColor    = getBudgetColor(budgetRawPct);
+
+  // MoM: center bar (index 6) vs the bar immediately to its left (index 5)
+  const selChartAmt  = chartData[6]?.amount ?? totalSpentUsd;
+  const prevChartAmt = chartData[5]?.amount ?? 0;
+  const momDiff      = prevChartAmt > 0 ? Math.round(((selChartAmt - prevChartAmt) / prevChartAmt) * 100) : 0;
 
   const donutSlices: DonutSlice[] = (monthlySummary?.breakdown ?? []).map(b => ({
     cat:      b.categoryName,
@@ -301,8 +463,8 @@ export default function DashboardPage() {
   const filteredTx    = expenses.filter(e => txFilter === "All" || e.category.name === txFilter).slice(0, txCount);
   const totalFiltered = expenses.filter(e => txFilter === "All" || e.category.name === txFilter).length;
 
-  const curMonthLabel = now.toLocaleDateString("en-US", { month: "long", year: "numeric" });
-  const hour          = now.getHours();
+  const selMonthLabel = new Date(selYear, selMonth - 1, 1).toLocaleDateString("en-US", { month: "long", year: "numeric" });
+  const hour          = TODAY.getHours();
   const greeting      = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
 
   return (
@@ -314,17 +476,24 @@ export default function DashboardPage() {
           style={{ backgroundImage: "linear-gradient(white 1px,transparent 1px),linear-gradient(90deg,white 1px,transparent 1px)", backgroundSize: "32px 32px" }} />
         <div className="absolute -right-12 -top-12 w-48 h-48 bg-blue-400/20 rounded-full blur-3xl" />
         <div className="absolute right-20 bottom-0 w-32 h-32 bg-blue-300/10 rounded-full blur-2xl" />
-        <div className="flex items-center justify-between relative">
-          <div>
-            <p className="text-blue-200 text-sm font-medium">{greeting} 👋</p>
+
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 relative">
+          <div className="flex-1 min-w-0">
+            {/* Greeting line — only for current month */}
+            {!isPast
+              ? <p className="text-blue-200 text-sm font-medium">{greeting} 👋</p>
+              : <p className="text-blue-300 text-xs font-semibold uppercase tracking-widest">Viewing past month</p>
+            }
             <p className="text-white font-black text-2xl md:text-3xl font-['Sora',sans-serif] leading-tight mt-1">
-              {user?.name ?? "Welcome back"}
+              {isPast ? selMonthLabel : (user?.name ?? "Welcome back")}
             </p>
             <p className="text-blue-200 text-sm mt-2 leading-relaxed max-w-md">
-              {expLoading ? "Loading your data…" : (
+              {expLoading || summaryLoading ? "Loading your data…" : (
                 <>
-                  You've spent <strong className="text-white">{fmtUSD(totalSpentUsd)}</strong> this month.
-                  {budgetLimitUsd > 0 && (
+                  {isPast ? "Total spent: " : "You've spent "}
+                  <strong className="text-white">{fmtPrimary(totalSpentUsd, pref)}</strong>
+                  <span className="text-blue-300 text-xs ml-1">({fmtSecondary(totalSpentUsd, pref)})</span>
+                  {!isPast && budgetLimitUsd > 0 && (
                     <span className="hidden sm:inline">
                       {" "}Budget at {budgetRawPct}% —{" "}
                       {overallColor.status === "safe"    && "you're doing great!"}
@@ -337,61 +506,105 @@ export default function DashboardPage() {
               )}
             </p>
           </div>
-          <div className="shrink-0 ml-6">
-            <Link href="/dashboard/expenses/new"
-              className="flex items-center gap-2 bg-white text-blue-700 hover:bg-blue-50 text-sm font-bold px-5 py-3 rounded-xl transition-all shadow-lg hover:shadow-xl active:scale-95">
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
-              </svg>
-              <span className="hidden sm:inline">Add Expense</span>
-              <span className="sm:hidden">Add</span>
-            </Link>
+
+          {/* Right side: month nav + add button */}
+          <div className="flex items-center gap-3 shrink-0">
+            <MonthNavigator year={selYear} month={selMonth} onChange={handleMonthChange} />
+            {!isPast && (
+              <Link href="/dashboard/expenses/new"
+                className="flex items-center gap-2 bg-white text-blue-700 hover:bg-blue-50 text-sm font-bold px-5 py-3 rounded-xl transition-all shadow-lg hover:shadow-xl active:scale-95">
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
+                </svg>
+                <span className="hidden sm:inline">Add Expense</span>
+                <span className="sm:hidden">Add</span>
+              </Link>
+            )}
           </div>
         </div>
       </div>
 
       {/* ── STAT CARDS ── */}
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
-        <StatCard label="Total Spent"    value={expLoading     ? "—" : fmtUSD(totalSpentUsd)}   sub={curMonthLabel}    change={expLoading     ? "…" : `${expenses.length} expenses`}                        positive={false} Icon={TrendingDown} iconColor="bg-red-50 text-red-400"    accent="bg-red-400"   delay={0}   />
-        <StatCard label="Monthly Budget" value={budgetLoading  ? "—" : fmtUSD(budgetLimitUsd)}  sub="Total limit set"  change={budgetLoading  ? "…" : `${budgetRawPct}% used`}                              positive={budgetRawPct < 50} Icon={TrendingUp} iconColor="bg-green-50 text-green-500" accent="bg-green-400" delay={60}  />
-        <StatCard label="Remaining"      value={budgetLoading  ? "—" : fmtUSD(Math.max(budgetLimitUsd - budgetSpentUsd, 0))} sub="Budget left" change={budgetLoading ? "…" : budgetLimitUsd > 0 ? `${Math.max(100 - budgetRawPct, 0)}% free` : "No budget set"} positive={budgetRawPct < 80} Icon={PiggyBank} iconColor="bg-blue-50 text-blue-400"  accent="bg-blue-400"  delay={120} />
-        <StatCard label="KHQR / App"     value={expLoading     ? "—" : `${digitalCount} receipts`} sub="Digital payments" change={expLoading ? "…" : `of ${expenses.length} total`}                       positive={true}  Icon={ScanLine}    iconColor="bg-blue-50 text-blue-500"   accent="bg-blue-500"  delay={180} />
+        <StatCard
+          label="Total Spent"
+          value={expLoading || summaryLoading ? "—" : fmtPrimary(totalSpentUsd, pref)}
+          subDim={expLoading || summaryLoading ? undefined : fmtSecondary(totalSpentUsd, pref)}
+          sub={selMonthLabel}
+          change={expLoading ? "…" : `${expenses.length} expenses`}
+          positive={false} Icon={TrendingDown} iconColor="bg-red-50 text-red-400" accent="bg-red-400" delay={0} />
+        <StatCard
+          label="Monthly Budget"
+          value={budgetLoading ? "—" : fmtPrimary(budgetLimitUsd, pref)}
+          subDim={budgetLoading ? undefined : fmtSecondary(budgetLimitUsd, pref)}
+          sub="Total limit set"
+          change={budgetLoading ? "…" : `${budgetRawPct}% used`}
+          positive={budgetRawPct < 50} Icon={TrendingUp} iconColor="bg-green-50 text-green-500" accent="bg-green-400" delay={60} />
+        <StatCard
+          label="Remaining"
+          value={budgetLoading ? "—" : fmtPrimary(Math.max(budgetLimitUsd - budgetSpentUsd, 0), pref)}
+          subDim={budgetLoading ? undefined : fmtSecondary(Math.max(budgetLimitUsd - budgetSpentUsd, 0), pref)}
+          sub="Budget left"
+          change={budgetLoading ? "…" : budgetLimitUsd > 0 ? `${Math.max(100 - budgetRawPct, 0)}% free` : "No budget set"}
+          positive={budgetRawPct < 80} Icon={PiggyBank} iconColor="bg-blue-50 text-blue-400" accent="bg-blue-400" delay={120} />
+        <StatCard
+          label="Total Expenses"
+          value={expLoading ? "—" : `${expenses.length} expenses`}
+          sub={selMonthLabel}
+          change={expLoading ? "…" : digitalCount > 0 ? `${digitalCount} via KHQR / App` : "No digital payments"}
+          positive={true} Icon={ScanLine} iconColor="bg-blue-50 text-blue-500" accent="bg-blue-500" delay={180} />
       </div>
 
       {/* ── CHARTS ROW ── */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
+
+        {/* Bar chart — click bars to switch month */}
         <div className="xl:col-span-2 bg-white rounded-2xl p-6 border border-blue-100 shadow-sm card-in" style={{ animationDelay: "80ms" }}>
           <div className="flex items-start justify-between">
             <div>
               <p className="text-blue-400 text-xs font-bold uppercase tracking-widest">Monthly Spending</p>
               {chartLoading
                 ? <div className="h-9 w-32 bg-blue-50 rounded-xl animate-pulse mt-1" />
-                : <p className="text-blue-800 font-black text-3xl font-['Sora',sans-serif] mt-1">
-                    {fmtUSD(curMonthAmt)}
-                    <span className="text-blue-300 text-base font-normal ml-2">{curMonthLabel}</span>
-                  </p>
+                : <div className="mt-1">
+                    <p className="text-blue-800 font-black text-3xl font-['Sora',sans-serif]">
+                      {fmtPrimary(selChartAmt, pref)}
+                      <span className="text-blue-300 text-base font-normal ml-2">{selMonthLabel}</span>
+                    </p>
+                    <p className="text-blue-300 text-xs mt-0.5">{fmtSecondary(selChartAmt, pref)}</p>
+                  </div>
               }
             </div>
-            {!chartLoading && chartData.length >= 2 && (
+            {!chartLoading && selectedChartIdx > 0 && (
               <span className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full shrink-0 ${momDiff > 0 ? "bg-red-50 text-red-500" : "bg-green-50 text-green-600"}`}>
-                {momDiff > 0 ? "↑" : "↓"} {Math.abs(momDiff)}% vs last month
+                {momDiff > 0 ? "↑" : "↓"} {Math.abs(momDiff)}% vs prev month
               </span>
             )}
           </div>
           {chartLoading
             ? <div className="h-36 bg-blue-50 rounded-xl animate-pulse mt-4" />
-            : <SpendingChart data={chartData} />
+            : <SpendingChart
+                data={chartData}
+                pref={pref}
+                selectedIdx={selectedChartIdx}
+                onSelect={handleBarSelect}
+              />
           }
+          {!chartLoading && (
+            <p className="text-blue-200 text-[10px] mt-2 text-center">
+              Click any bar to navigate to that month
+            </p>
+          )}
         </div>
 
+        {/* Donut */}
         <div className="bg-white rounded-2xl p-6 border border-blue-100 shadow-sm card-in" style={{ animationDelay: "120ms" }}>
           <p className="text-blue-400 text-xs font-bold uppercase tracking-widest mb-4">By Category</p>
-          {chartLoading
+          {chartLoading || summaryLoading
             ? <div className="flex items-center justify-center h-[200px]"><div className="w-32 h-32 rounded-full border-8 border-blue-100 animate-pulse" /></div>
-            : <DonutChart slices={donutSlices} totalUsd={totalSpentUsd} />
+            : <DonutChart slices={donutSlices} totalUsd={totalSpentUsd} pref={pref} />
           }
           <div className="mt-4 space-y-2.5">
-            {chartLoading
+            {chartLoading || summaryLoading
               ? [...Array(5)].map((_, i) => (
                   <div key={i} className="flex items-center gap-2.5 animate-pulse">
                     <div className="w-2.5 h-2.5 rounded-full bg-blue-100 shrink-0" />
@@ -403,7 +616,10 @@ export default function DashboardPage() {
                   <div key={d.cat} className="flex items-center gap-2.5">
                     <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: d.color }} />
                     <span className="text-blue-500 text-xs flex-1 truncate">{d.cat}</span>
-                    <span className="text-blue-400 text-xs">{fmtUSD(d.totalUsd)}</span>
+                    <div className="text-right">
+                      <span className="text-blue-400 text-xs">{fmtPrimary(d.totalUsd, pref)}</span>
+                      <span className="text-blue-200 text-[10px] block">{fmtSecondary(d.totalUsd, pref)}</span>
+                    </div>
                     <span className="text-blue-800 text-xs font-bold w-8 text-right">{d.pct}%</span>
                   </div>
                 ))
@@ -419,7 +635,14 @@ export default function DashboardPage() {
         {/* Transactions */}
         <div className="xl:col-span-2 bg-white rounded-2xl p-6 border border-blue-100 shadow-sm card-in" style={{ animationDelay: "160ms" }}>
           <div className="flex items-center justify-between mb-4">
-            <p className="text-blue-800 font-black text-lg font-['Sora',sans-serif]">Recent Transactions</p>
+            <div>
+              <p className="text-blue-800 font-black text-lg font-['Sora',sans-serif]">
+                {isPast ? "Transactions" : "Recent Transactions"}
+              </p>
+              {isPast && (
+                <p className="text-blue-300 text-xs mt-0.5">{selMonthLabel}</p>
+              )}
+            </div>
             <Link href="/dashboard/expenses" className="text-blue-500 text-sm font-semibold hover:text-blue-700 transition-colors">View all →</Link>
           </div>
           <div className="flex gap-2 mb-4 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
@@ -441,7 +664,10 @@ export default function DashboardPage() {
               ))}
             </div>
           ) : filteredTx.length === 0 ? (
-            <div className="text-center py-10 text-blue-300"><p className="text-4xl mb-2">🔍</p><p className="text-sm">No transactions here</p></div>
+            <div className="text-center py-10 text-blue-300">
+              <p className="text-4xl mb-2">🔍</p>
+              <p className="text-sm">{isPast ? `No transactions in ${selMonthLabel}` : "No transactions here"}</p>
+            </div>
           ) : (
             <>
               {filteredTx.map((e, i) => <TxRow key={e.id} expense={e} delay={i * 40} />)}
@@ -458,7 +684,10 @@ export default function DashboardPage() {
         {/* Budget widget */}
         <div className={`bg-white rounded-2xl p-6 border shadow-sm card-in flex flex-col ${overallColor.borderClass}`} style={{ animationDelay: "200ms" }}>
           <div className="flex items-center justify-between mb-5">
-            <p className="text-blue-800 font-black text-lg font-['Sora',sans-serif]">Budget Progress</p>
+            <div>
+              <p className="text-blue-800 font-black text-lg font-['Sora',sans-serif]">Budget Progress</p>
+              {isPast && <p className="text-blue-300 text-xs mt-0.5">{selMonthLabel}</p>}
+            </div>
             <Link href="/dashboard/budgets" className="text-blue-500 text-sm font-semibold hover:text-blue-700 transition-colors">Manage →</Link>
           </div>
 
@@ -472,7 +701,7 @@ export default function DashboardPage() {
                 </div>
               ))}
             </div>
-          ) : (budgetSummary?.statuses ?? []).length === 0 ? (
+          ) : activeBudgetStatuses.length === 0 ? (
             <div className="flex-1 flex flex-col items-center justify-center py-6 text-center">
               <p className="text-3xl mb-2">💰</p>
               <p className="text-blue-400 text-sm font-semibold">No budgets set yet</p>
@@ -482,8 +711,8 @@ export default function DashboardPage() {
             </div>
           ) : (
             <div className="space-y-5 flex-1">
-              {(budgetSummary?.statuses ?? []).slice(0, 6).map(s => (
-                <BudgetBar key={s.id} status={s} />
+              {activeBudgetStatuses.slice(0, 6).map(s => (
+                <BudgetBar key={s.id} status={s} pref={pref} />
               ))}
             </div>
           )}
@@ -502,11 +731,11 @@ export default function DashboardPage() {
                 </div>
               </div>
               <div className="flex justify-between mt-1.5">
-                <span className="text-blue-300 text-xs">{fmtUSD(budgetSpentUsd)} spent</span>
+                <span className="text-blue-300 text-xs">{fmtPrimary(budgetSpentUsd, pref)} spent</span>
                 <span className={`text-xs font-semibold ${overallColor.textClass}`}>
                   {budgetRawPct > 100
-                    ? `${fmtUSD(budgetSpentUsd - budgetLimitUsd)} over budget`
-                    : `${fmtUSD(budgetLimitUsd - budgetSpentUsd)} remaining`}
+                    ? `${fmtPrimary(budgetSpentUsd - budgetLimitUsd, pref)} over`
+                    : `${fmtPrimary(budgetLimitUsd - budgetSpentUsd, pref)} left`}
                 </span>
               </div>
             </div>

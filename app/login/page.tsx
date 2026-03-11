@@ -3,18 +3,27 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
+import {
+  Wallet, BarChart3, TrendingDown, PiggyBank, Receipt,
+  Eye, EyeOff, AlertCircle
+} from "lucide-react";
 
-// ─── Floating finance stat pill ──────────────────────────────────────────────
+// ─── Floating finance stat pill ──────────────────────────────────
 function StatPill({
-  emoji, label, value, color, style
-}: { emoji: string; label: string; value: string; color: string; style?: React.CSSProperties }) {
+  icon: Icon, label, value, color, style
+}: {
+  icon: React.ElementType; label: string; value: string;
+  color: string; style?: React.CSSProperties;
+}) {
   return (
     <div
       className="absolute bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl px-4 py-3 shadow-xl"
       style={style}
     >
       <div className="flex items-center gap-3">
-        <span className="text-2xl">{emoji}</span>
+        <div className="w-9 h-9 rounded-xl bg-white/15 flex items-center justify-center shrink-0">
+          <Icon size={17} className="text-white" strokeWidth={1.8} />
+        </div>
         <div>
           <p className="text-white/60 text-[10px] uppercase tracking-widest font-medium">{label}</p>
           <p className={`font-black text-sm ${color}`}>{value}</p>
@@ -24,7 +33,7 @@ function StatPill({
   );
 }
 
-// ─── Mini chart bars ─────────────────────────────────────────────────────────
+// ─── Mini chart bars ──────────────────────────────────────────────
 function MiniChart() {
   const bars = [40, 65, 45, 80, 55, 90, 70, 85, 60, 95, 75, 100];
   return (
@@ -36,7 +45,7 @@ function MiniChart() {
   );
 }
 
-// ─── Password input with toggle ──────────────────────────────────────────────
+// ─── Password input with toggle ───────────────────────────────────
 function PasswordInput({
   value, onChange, placeholder, id
 }: { value: string; onChange: (v: string) => void; placeholder?: string; id?: string }) {
@@ -57,22 +66,13 @@ function PasswordInput({
         className="absolute right-3 top-1/2 -translate-y-1/2 text-blue-300 hover:text-blue-500 transition-colors"
         aria-label={show ? "Hide password" : "Show password"}
       >
-        {show ? (
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
-          </svg>
-        ) : (
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-          </svg>
-        )}
+        {show ? <EyeOff size={16} /> : <Eye size={16} />}
       </button>
     </div>
   );
 }
 
-// ─── Login Page ───────────────────────────────────────────────────────────────
+// ─── Login Page ───────────────────────────────────────────────────
 export default function LoginPage() {
   const [email, setEmail]       = useState("");
   const [password, setPassword] = useState("");
@@ -116,7 +116,7 @@ export default function LoginPage() {
 
       <div className="min-h-screen flex">
 
-        {/* ── Left panel ───────────────────────────────────────────────── */}
+        {/* ── Left panel ────────────────────────────────────────────── */}
         <div className="hidden lg:flex lg:w-[45%] xl:w-[40%] relative bg-blue-600 flex-col justify-between overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-br from-blue-700 via-blue-600 to-blue-500" />
           <div className="absolute top-0 right-0 w-80 h-80 bg-blue-500/40 rounded-full blur-3xl translate-x-1/2 -translate-y-1/2" />
@@ -125,12 +125,11 @@ export default function LoginPage() {
             style={{ backgroundImage: "linear-gradient(white 1px, transparent 1px), linear-gradient(90deg, white 1px, transparent 1px)", backgroundSize: "40px 40px" }} />
           <MiniChart />
 
+          {/* Logo */}
           <div className="relative z-10 p-10">
             <Link href="/" className="inline-flex items-center gap-2.5">
               <div className="w-9 h-9 rounded-xl bg-white/20 backdrop-blur flex items-center justify-center border border-white/30">
-                <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
+                <Wallet size={18} className="text-white" strokeWidth={2} />
               </div>
               <span className="text-white font-black text-xl font-['Sora',sans-serif] tracking-tight">
                 Fin<span className="text-blue-200">Set</span>
@@ -138,49 +137,46 @@ export default function LoginPage() {
             </Link>
           </div>
 
+          {/* Floating stat pills */}
           <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-10 pb-8">
             <div className="relative w-full max-w-[300px] h-[320px]">
-              <StatPill emoji="💰" label="This Month Saved" value="$248.50" color="text-green-300"
-                style={{ top: "0%", left: "5%", animation: "float-a 5s ease-in-out infinite" }} />
-              <StatPill emoji="📊" label="Budget Used" value="62% of $500" color="text-blue-200"
-                style={{ top: "30%", right: "0%", animation: "float-b 6s ease-in-out infinite 1s" }} />
-              <StatPill emoji="🛍️" label="Largest Expense" value="₭87,000" color="text-red-300"
+              <StatPill icon={PiggyBank} label="This Month Saved"  value="$248.50"      color="text-green-300"
+                style={{ top: "0%",    left: "5%",  animation: "float-a 5s ease-in-out infinite" }} />
+              <StatPill icon={BarChart3} label="Budget Used"       value="62% of $500"  color="text-blue-200"
+                style={{ top: "30%",   right: "0%", animation: "float-b 6s ease-in-out infinite 1s" }} />
+              <StatPill icon={Receipt}   label="Largest Expense"   value="៛87,000"      color="text-red-300"
                 style={{ bottom: "10%", left: "8%", animation: "float-a 7s ease-in-out infinite 0.5s" }} />
+
+              {/* Center icon */}
               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-28 h-28 rounded-full bg-white/10 border border-white/20 backdrop-blur-sm flex items-center justify-center shadow-2xl">
                 <div className="w-20 h-20 rounded-full bg-white/15 border border-white/20 flex items-center justify-center">
-                  <svg className="w-10 h-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                  </svg>
+                  <TrendingDown size={36} className="text-white" strokeWidth={1.5} />
                 </div>
               </div>
             </div>
+
             <div className="text-center mt-6">
               <h2 className="text-white font-black text-2xl font-['Sora',sans-serif] leading-tight mb-2">
                 Your Money,<br />Under Control
               </h2>
               <p className="text-blue-200 text-sm leading-relaxed max-w-xs">
-                Track KHR & USD, scan KHQR receipts, and build smarter habits — all in one place.
+                Track expenses by category, set budgets, and manage finances with your partner or family.
               </p>
             </div>
           </div>
 
-          <div className="relative z-10 p-10 flex items-center gap-3">
-            <span className="text-blue-300 text-xs">Available in</span>
-            <span className="bg-white/15 text-white text-xs font-bold px-2.5 py-1 rounded-lg border border-white/20">EN</span>
-            <span className="bg-white/15 text-white text-xs font-bold px-2.5 py-1 rounded-lg border border-white/20">ខ្មែរ</span>
-          </div>
+          {/* Bottom spacer — language switcher removed */}
+          <div className="relative z-10 p-10" />
         </div>
 
-        {/* ── Right panel: form ─────────────────────────────────────────── */}
+        {/* ── Right panel: form ──────────────────────────────────────── */}
         <div className="flex-1 flex items-center justify-center px-6 py-12 bg-blue-50">
           <div className="w-full max-w-[420px]">
 
             {/* Mobile logo */}
             <div className="lg:hidden flex items-center gap-2 mb-8">
               <div className="w-8 h-8 rounded-xl bg-blue-600 flex items-center justify-center">
-                <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
+                <Wallet size={15} className="text-white" strokeWidth={2} />
               </div>
               <span className="text-blue-800 font-black text-xl font-['Sora',sans-serif]">
                 Fin<span className="text-blue-600">Set</span>
@@ -190,7 +186,7 @@ export default function LoginPage() {
             {/* Heading */}
             <div className="form-in mb-8">
               <h1 className="text-3xl font-black text-blue-800 font-['Sora',sans-serif] mb-1">
-                Welcome back 👋
+                Welcome back
               </h1>
               <p className="text-blue-400 text-sm">
                 Don't have an account?{" "}
@@ -203,9 +199,7 @@ export default function LoginPage() {
             {/* Error banner */}
             {error && (
               <div className="form-in mb-4 flex items-center gap-3 bg-red-50 border border-red-200 text-red-600 text-sm px-4 py-3 rounded-xl">
-                <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
+                <AlertCircle size={16} className="shrink-0" />
                 {error}
               </div>
             )}
@@ -248,13 +242,9 @@ export default function LoginPage() {
                   Email
                 </label>
                 <input
-                  id="email"
-                  type="email"
-                  value={email}
+                  id="email" type="email" value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@example.com"
-                  required
-                  autoComplete="email"
+                  placeholder="you@example.com" required autoComplete="email"
                   className="w-full px-4 py-3 rounded-xl border border-blue-100 bg-blue-50/50 text-blue-800 placeholder-blue-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                 />
               </div>
@@ -273,8 +263,7 @@ export default function LoginPage() {
 
               <div className="form-in-5 pt-1">
                 <button
-                  type="submit"
-                  disabled={loading}
+                  type="submit" disabled={loading}
                   className="w-full shimmer-btn text-white font-bold py-3.5 rounded-xl transition-all hover:shadow-xl hover:shadow-blue-600/30 hover:-translate-y-0.5 active:scale-[0.98] active:translate-y-0 disabled:opacity-70 disabled:cursor-wait disabled:hover:translate-y-0"
                 >
                   {loading ? (

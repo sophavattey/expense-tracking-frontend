@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 import { useBudgets } from "@/hooks/useBudgets";
 import { useCategories } from "@/hooks/useCategories";
 import { getBudgetColor } from "@/utils/budgetColors";
@@ -9,13 +10,15 @@ import type { Category } from "@/types/category.types";
 
 const KHR_RATE = 4000;
 const PERIODS: { value: BudgetPeriod; label: string; desc: string }[] = [
-  { value: "DAILY",   label: "Daily",   desc: "Resets every day"     },
-  { value: "WEEKLY",  label: "Weekly",  desc: "Resets every Monday"  },
-  { value: "MONTHLY", label: "Monthly", desc: "Resets 1st of month"  },
+  { value: "DAILY",   label: "Daily",   desc: "Resets every day"    },
+  { value: "WEEKLY",  label: "Weekly",  desc: "Resets every Monday" },
+  { value: "MONTHLY", label: "Monthly", desc: "Resets 1st of month" },
 ];
 
 function fmtUSD(n: number) { return `$${n.toFixed(2)}`; }
 function fmtKHR(usd: number) { return `៛${Math.round(usd * KHR_RATE).toLocaleString()}`; }
+function fmtPrimary(usd: number, pref: "USD" | "KHR") { return pref === "KHR" ? fmtKHR(usd) : fmtUSD(usd); }
+function fmtSecondary(usd: number, pref: "USD" | "KHR") { return pref === "KHR" ? fmtUSD(usd) : fmtKHR(usd); }
 
 /* ── Period badge ──────────────────────────────────────────────── */
 function PeriodBadge({ period }: { period: BudgetPeriod }) {
@@ -33,27 +36,25 @@ function PeriodBadge({ period }: { period: BudgetPeriod }) {
 
 /* ── Budget progress bar ───────────────────────────────────────── */
 function BudgetBar({ pct, color }: { pct: number; color: ReturnType<typeof getBudgetColor> }) {
-  const w = Math.min(pct, 100);
   return (
     <div className="w-full bg-blue-50 rounded-full h-2 overflow-hidden">
-      <div
-        className={`h-2 rounded-full transition-all duration-700 ${color.barClass}`}
-        style={{ width: `${w}%` }}
-      />
+      <div className={`h-2 rounded-full transition-all duration-700 ${color.barClass}`}
+        style={{ width: `${Math.min(pct, 100)}%` }} />
     </div>
   );
 }
 
 /* ── Budget card ───────────────────────────────────────────────── */
-function BudgetCard({ status, onEdit, onDelete }: {
+function BudgetCard({ status, pref, onEdit, onDelete }: {
   status:   BudgetStatus;
+  pref:     "USD" | "KHR";
   onEdit:   (s: BudgetStatus) => void;
   onDelete: (s: BudgetStatus) => void;
 }) {
-  const color   = getBudgetColor(status.percentage);
-  const catName = status.category?.name  ?? "Overall";
-  const catIcon = status.category?.icon  ?? "📊";
-  const catColor= status.category?.color ?? "#2563eb";
+  const color    = getBudgetColor(status.percentage);
+  const catName  = status.category?.name  ?? "Overall";
+  const catIcon  = status.category?.icon  ?? "📊";
+  const catColor = status.category?.color ?? "#2563eb";
 
   return (
     <div className={`bg-white rounded-2xl border shadow-sm p-5 transition-all hover:shadow-md group
@@ -62,10 +63,8 @@ function BudgetCard({ status, onEdit, onDelete }: {
       {/* Header */}
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center gap-3">
-          <div
-            className="w-10 h-10 rounded-xl flex items-center justify-center text-xl shrink-0"
-            style={{ backgroundColor: catColor + "18", border: `1.5px solid ${catColor}30` }}
-          >
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl shrink-0"
+            style={{ backgroundColor: catColor + "18", border: `1.5px solid ${catColor}30` }}>
             {catIcon}
           </div>
           <div>
@@ -76,23 +75,21 @@ function BudgetCard({ status, onEdit, onDelete }: {
             </div>
           </div>
         </div>
-
-        {/* Action buttons */}
         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-            <button onClick={() => onEdit(status)}
-              className="p-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-500 transition-colors">
-              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                  d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-              </svg>
-            </button>
-            <button onClick={() => onDelete(status)}
-              className="p-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-400 transition-colors">
-              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-              </svg>
-            </button>
+          <button onClick={() => onEdit(status)}
+            className="p-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-500 transition-colors">
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+            </svg>
+          </button>
+          <button onClick={() => onDelete(status)}
+            className="p-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-400 transition-colors">
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+          </button>
         </div>
       </div>
 
@@ -100,34 +97,28 @@ function BudgetCard({ status, onEdit, onDelete }: {
       <div className="flex items-end justify-between mb-2">
         <div>
           <p className={`font-black text-xl font-['Sora',sans-serif] leading-none ${color.textClass}`}>
-            {fmtUSD(status.spentUsd)}
+            {fmtPrimary(status.spentUsd, pref)}
           </p>
-          <p className="text-blue-300 text-xs mt-0.5">{fmtKHR(status.spentUsd)}</p>
+          <p className="text-blue-300 text-xs mt-0.5">{fmtSecondary(status.spentUsd, pref)}</p>
         </div>
         <div className="text-right">
-          <p className="text-blue-400 text-xs">of {fmtUSD(status.limitUsd)}</p>
-          <p className="text-blue-300 text-[10px]">{fmtKHR(status.limitUsd)}</p>
+          <p className="text-blue-400 text-xs">of {fmtPrimary(status.limitUsd, pref)}</p>
+          <p className="text-blue-300 text-[10px]">{fmtSecondary(status.limitUsd, pref)}</p>
         </div>
       </div>
 
-      {/* Bar */}
       <BudgetBar pct={status.percentage} color={color} />
 
-      {/* Footer — remaining / over + percent */}
+      {/* Footer */}
       <div className="flex items-center justify-between mt-2.5">
         <span className={`flex items-center gap-1 text-xs font-bold ${color.textClass}`}>
           <color.Icon size={12} strokeWidth={2.5} />
-          {color.status === "over"
-            ? `${fmtUSD(Math.abs(status.remainingUsd))} over budget`
-            : color.status === "danger"
-            ? `${fmtUSD(status.remainingUsd)} left — very close!`
-            : color.status === "warning"
-            ? `${fmtUSD(status.remainingUsd)} left`
-            : `${fmtUSD(status.remainingUsd)} remaining`}
+          {color.status === "over"    && `${fmtPrimary(Math.abs(status.remainingUsd), pref)} over budget`}
+          {color.status === "danger"  && `${fmtPrimary(status.remainingUsd, pref)} left — very close!`}
+          {color.status === "warning" && `${fmtPrimary(status.remainingUsd, pref)} left`}
+          {color.status === "safe"    && `${fmtPrimary(status.remainingUsd, pref)} remaining`}
         </span>
-        <span className={`text-xs font-black ${color.textClass}`}>
-          {status.percentage}%
-        </span>
+        <span className={`text-xs font-black ${color.textClass}`}>{status.percentage}%</span>
       </div>
     </div>
   );
@@ -143,22 +134,32 @@ function BudgetModal({ editStatus, categories, onSave, onClose, saving, error: s
   error:       string | null;
 }) {
   const isEdit = !!editStatus;
+  const [categoryId,     setCategoryId]     = useState<string | null>(editStatus?.category?.id ?? (categories[0]?.id ?? null));
+  const [period,         setPeriod]         = useState<BudgetPeriod>(editStatus?.period ?? "MONTHLY");
+  const [inputCurrency,  setInputCurrency]  = useState<"USD" | "KHR">("USD");
+  const [limitValue,     setLimitValue]     = useState(() => {
+    if (!editStatus) return "";
+    // Pre-fill in USD; user can switch currency if they want
+    return String(editStatus.limitUsd);
+  });
+  const [formErr, setFormErr] = useState<Record<string, string>>({});
 
-  const [categoryId, setCategoryId] = useState<string | null>(editStatus?.category?.id ?? null);
-  const [period,     setPeriod]     = useState<BudgetPeriod>(editStatus?.period   ?? "MONTHLY");
-  const [limitUsd,   setLimitUsd]   = useState(editStatus ? String(editStatus.limitUsd) : "");
-  const [recurring,  setRecurring]  = useState(true);
-  const [startDate,  setStartDate]  = useState("");
-  const [endDate,    setEndDate]    = useState("");
-  const [formErr,    setFormErr]    = useState<Record<string, string>>({});
+  const isKhr    = inputCurrency === "KHR";
+  const numLimit = Number(limitValue) || 0;
+
+  // Hint: show the equivalent in the other currency
+  const hint = isKhr
+    ? numLimit > 0 ? `≈ $${(numLimit / KHR_RATE).toFixed(2)} USD` : null
+    : numLimit > 0 ? `≈ ៛${Math.round(numLimit * KHR_RATE).toLocaleString()} KHR` : null;
 
   const validate = () => {
     const e: Record<string, string> = {};
-    if (!limitUsd || isNaN(Number(limitUsd)) || Number(limitUsd) <= 0)
-      e.limit = "Enter a valid limit greater than 0";
-    if (!recurring && !startDate) e.startDate = "Start date is required";
-    if (!recurring && endDate && startDate && endDate < startDate)
-      e.endDate = "End date must be after start date";
+    if (!categoryId)
+      e.category = "Please select a category";
+    if (!limitValue || isNaN(numLimit) || numLimit <= 0)
+      e.limit = `Enter a valid limit greater than ${isKhr ? "0" : "$0"}`;
+    if (isKhr && numLimit < 1)
+      e.limit = "KHR limit must be at least ៛1";
     setFormErr(e);
     return Object.keys(e).length === 0;
   };
@@ -166,38 +167,30 @@ function BudgetModal({ editStatus, categories, onSave, onClose, saving, error: s
   const handleSave = async () => {
     if (!validate()) return;
     await onSave({
-      categoryId:  categoryId ?? null,
+      categoryId,
       period,
-      limitUsd:    parseFloat(limitUsd),
-      recurring,
-      startDate:   !recurring && startDate ? startDate : undefined,
-      endDate:     !recurring && endDate   ? endDate   : undefined,
+      inputCurrency,
+      limitUsd:  !isKhr ? numLimit          : undefined,
+      limitKhr:   isKhr ? Math.round(numLimit) : undefined,
     });
   };
-
-  const numLimit = Number(limitUsd) || 0;
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
-      <div
-        className="relative bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl w-full sm:max-w-lg overflow-hidden"
-        style={{ animation: "slideUp 0.25s ease both", maxHeight: "92dvh", overflowY: "auto" }}
-      >
+      <div className="relative bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl w-full sm:max-w-lg overflow-hidden"
+        style={{ animation: "slideUp 0.25s ease both", maxHeight: "92dvh", overflowY: "auto" }}>
         <div className="w-10 h-1 bg-blue-100 rounded-full mx-auto mt-4 mb-1 sm:hidden" />
-
         <div className="p-6 space-y-5">
-          {/* Title */}
           <div>
             <h2 className="text-blue-800 font-black text-xl font-['Sora',sans-serif]">
               {isEdit ? "Edit Budget" : "New Budget"}
             </h2>
             <p className="text-blue-400 text-sm mt-0.5">
-              {isEdit ? "Update your spending limit" : "Set a spending limit for a category or overall"}
+              {isEdit ? "Update your spending limit" : "Set a spending limit that automatically resets each period"}
             </p>
           </div>
 
-          {/* Save error */}
           {saveError && (
             <div className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-600 text-sm px-4 py-3 rounded-xl">
               <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -210,37 +203,27 @@ function BudgetModal({ editStatus, categories, onSave, onClose, saving, error: s
 
           {/* Category picker */}
           <div>
-            <label className="block text-blue-600 text-[10px] font-bold uppercase tracking-widest mb-2">
-              Category
-            </label>
+            <label className="block text-blue-600 text-[10px] font-bold uppercase tracking-widest mb-2">Category</label>
             <div className="grid grid-cols-2 gap-2">
-              <button onClick={() => setCategoryId(null)}
-                className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border text-left transition-all
-                  ${categoryId === null
-                    ? "bg-blue-600 border-blue-600 text-white shadow-md"
-                    : "bg-blue-50 border-blue-100 text-blue-600 hover:border-blue-300"}`}>
-                <span className="text-base">📊</span>
-                <span className="text-xs font-semibold truncate">Overall</span>
-              </button>
               {categories.map(c => (
                 <button key={c.id} onClick={() => setCategoryId(c.id)}
                   className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border text-left transition-all
                     ${categoryId === c.id ? "border-transparent shadow-md" : "bg-blue-50 border-blue-100 hover:border-blue-300"}`}
-                  style={categoryId === c.id
-                    ? { backgroundColor: c.color + "18", borderColor: c.color + "60" }
-                    : {}}>
+                  style={categoryId === c.id ? { backgroundColor: c.color + "18", borderColor: c.color + "60" } : {}}>
                   <span className="text-base shrink-0">{c.icon}</span>
                   <span className="text-xs font-semibold truncate text-blue-700">{c.name}</span>
                 </button>
               ))}
             </div>
+            {categories.length === 0 && (
+              <p className="text-blue-300 text-xs mt-2">No categories yet — <a href="/dashboard/categories" className="text-blue-500 font-semibold hover:underline">create one first</a>.</p>
+            )}
+            {formErr.category && <p className="text-red-500 text-xs mt-1">{formErr.category}</p>}
           </div>
 
           {/* Period picker */}
           <div>
-            <label className="block text-blue-600 text-[10px] font-bold uppercase tracking-widest mb-2">
-              Period
-            </label>
+            <label className="block text-blue-600 text-[10px] font-bold uppercase tracking-widest mb-2">Period</label>
             <div className="grid grid-cols-3 gap-2">
               {PERIODS.map(p => (
                 <button key={p.value} onClick={() => setPeriod(p.value)}
@@ -249,73 +232,49 @@ function BudgetModal({ editStatus, categories, onSave, onClose, saving, error: s
                       ? "bg-blue-600 border-blue-600 text-white shadow-md"
                       : "bg-blue-50 border-blue-100 text-blue-500 hover:border-blue-300"}`}>
                   <span className="text-sm font-bold">{p.label}</span>
-                  <span className={`text-[10px] mt-0.5 ${period === p.value ? "text-blue-200" : "text-blue-300"}`}>
-                    {p.desc}
-                  </span>
+                  <span className={`text-[10px] mt-0.5 ${period === p.value ? "text-blue-200" : "text-blue-300"}`}>{p.desc}</span>
                 </button>
               ))}
             </div>
           </div>
 
-          {/* Limit input */}
+          {/* Limit input with currency toggle */}
           <div>
-            <label className="block text-blue-600 text-[10px] font-bold uppercase tracking-widest mb-2">
-              Limit (USD) *
-            </label>
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-blue-600 text-[10px] font-bold uppercase tracking-widest">Limit *</label>
+              {/* Currency toggle */}
+              <div className="flex items-center bg-blue-50 rounded-xl p-0.5 border border-blue-100">
+                {(["USD", "KHR"] as const).map(c => (
+                  <button key={c} onClick={() => { setInputCurrency(c); setLimitValue(""); setFormErr({}); }}
+                    className={`px-3 py-1 rounded-lg text-xs font-bold transition-all
+                      ${inputCurrency === c
+                        ? "bg-blue-600 text-white shadow-sm"
+                        : "text-blue-400 hover:text-blue-600"}`}>
+                    {c === "USD" ? "$ USD" : "៛ KHR"}
+                  </button>
+                ))}
+              </div>
+            </div>
             <div className="relative">
-              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-blue-400 font-bold">$</span>
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-blue-400 font-bold text-sm">
+                {isKhr ? "៛" : "$"}
+              </span>
               <input
-                type="number" min="0.01" step="0.01" value={limitUsd}
-                onChange={e => setLimitUsd(e.target.value)}
-                placeholder="0.00" inputMode="decimal"
+                type="number"
+                min={isKhr ? "1" : "0.01"}
+                step={isKhr ? "1000" : "0.01"}
+                value={limitValue}
+                onChange={e => setLimitValue(e.target.value)}
+                placeholder={isKhr ? "e.g. 800000" : "0.00"}
+                inputMode={isKhr ? "numeric" : "decimal"}
                 className={`w-full pl-8 pr-4 py-3.5 rounded-xl border bg-blue-50/50 text-blue-800 font-bold
                   focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all
-                  ${formErr.limit ? "border-red-300 bg-red-50/30" : "border-blue-100"}`}
-              />
+                  ${formErr.limit ? "border-red-300 bg-red-50/30" : "border-blue-100"}`} />
             </div>
             {formErr.limit && <p className="text-red-500 text-xs mt-1">{formErr.limit}</p>}
-            {numLimit > 0 && (
-              <p className="text-blue-300 text-xs mt-1.5">≈ {fmtKHR(numLimit)} at ៛{KHR_RATE}/USD</p>
-            )}
+            {hint && <p className="text-blue-300 text-xs mt-1.5">{hint}</p>}
           </div>
 
-          {/* Recurring toggle */}
-          <div className="flex items-center justify-between p-4 bg-blue-50 rounded-xl border border-blue-100">
-            <div>
-              <p className="text-blue-700 text-sm font-bold">Recurring</p>
-              <p className="text-blue-400 text-xs mt-0.5">
-                {recurring ? "Automatically resets each period" : "One-time budget with fixed dates"}
-              </p>
-            </div>
-            <button onClick={() => setRecurring(!recurring)}
-              className={`relative w-12 h-6 rounded-full transition-all ${recurring ? "bg-blue-600" : "bg-blue-200"}`}>
-              <span className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-all ${recurring ? "left-7" : "left-1"}`} />
-            </button>
-          </div>
-
-          {/* Fixed date range */}
-          {!recurring && (
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-blue-600 text-[10px] font-bold uppercase tracking-widest mb-1.5">Start Date *</label>
-                <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)}
-                  className={`w-full px-3 py-3 rounded-xl border bg-blue-50/50 text-blue-800 text-sm
-                    focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all
-                    ${formErr.startDate ? "border-red-300" : "border-blue-100"}`} />
-                {formErr.startDate && <p className="text-red-500 text-xs mt-1">{formErr.startDate}</p>}
-              </div>
-              <div>
-                <label className="block text-blue-600 text-[10px] font-bold uppercase tracking-widest mb-1.5">End Date</label>
-                <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)}
-                  className={`w-full px-3 py-3 rounded-xl border bg-blue-50/50 text-blue-800 text-sm
-                    focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all
-                    ${formErr.endDate ? "border-red-300" : "border-blue-100"}`} />
-                {formErr.endDate && <p className="text-red-500 text-xs mt-1">{formErr.endDate}</p>}
-              </div>
-            </div>
-          )}
-
-          {/* Actions */}
           <div className="flex gap-3 pt-1">
             <button onClick={onClose}
               className="flex-1 py-3.5 rounded-xl border-2 border-blue-100 text-blue-500 font-bold text-sm hover:bg-blue-50 transition-all">
@@ -377,6 +336,9 @@ function DeleteModal({ status, onConfirm, onClose, deleting }: {
    BUDGETS PAGE
 ═══════════════════════════════════════════════════════════════════ */
 export default function BudgetsPage() {
+  const { user } = useAuth();
+  const pref = user?.preferredCurrency ?? "USD";
+
   const { summary, loading, error, createBudget, updateBudget, deleteBudget } = useBudgets();
   const { categories } = useCategories();
 
@@ -420,9 +382,6 @@ export default function BudgetsPage() {
       ? Math.round((summary.totalSpentUsd / summary.totalLimitUsd) * 100)
       : 0
   );
-  const overallPct = summary && summary.totalLimitUsd > 0
-    ? Math.min(Math.round((summary.totalSpentUsd / summary.totalLimitUsd) * 100), 100)
-    : 0;
 
   return (
     <>
@@ -459,10 +418,10 @@ export default function BudgetsPage() {
         {!loading && summary && summary.totalBudgets > 0 && (
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3" style={{ animation: "fadeIn 0.4s ease" }}>
             {[
-              { label: "Total Limit",     value: `$${summary.totalLimitUsd.toFixed(2)}`,     sub: `៛${Math.round(summary.totalLimitUsd * KHR_RATE).toLocaleString()}`,     color: "text-blue-800"        },
-              { label: "Total Spent",     value: `$${summary.totalSpentUsd.toFixed(2)}`,     sub: `៛${Math.round(summary.totalSpentUsd * KHR_RATE).toLocaleString()}`,     color: overallColor.textClass },
-              { label: "Total Remaining", value: `$${summary.totalRemainingUsd.toFixed(2)}`, sub: `៛${Math.round(summary.totalRemainingUsd * KHR_RATE).toLocaleString()}`, color: summary.totalRemainingUsd < 0 ? "text-red-500" : "text-green-600" },
-              { label: "Over Budget",     value: `${summary.overBudgetCount} budget${summary.overBudgetCount !== 1 ? "s" : ""}`,  sub: `${summary.nearLimitCount} near limit`, color: summary.overBudgetCount > 0 ? "text-red-500" : "text-green-600" },
+              { label: "Total Limit",     value: fmtPrimary(summary.totalLimitUsd, pref),     sub: fmtSecondary(summary.totalLimitUsd, pref),     color: "text-blue-800" },
+              { label: "Total Spent",     value: fmtPrimary(summary.totalSpentUsd, pref),     sub: fmtSecondary(summary.totalSpentUsd, pref),     color: overallColor.textClass },
+              { label: "Total Remaining", value: fmtPrimary(summary.totalRemainingUsd, pref), sub: fmtSecondary(summary.totalRemainingUsd, pref), color: summary.totalRemainingUsd < 0 ? "text-red-500" : "text-green-600" },
+              { label: "Over Budget",     value: `${summary.overBudgetCount} budget${summary.overBudgetCount !== 1 ? "s" : ""}`, sub: `${summary.nearLimitCount} near limit`, color: summary.overBudgetCount > 0 ? "text-red-500" : "text-green-600" },
             ].map(card => (
               <div key={card.label} className="bg-white rounded-2xl border border-blue-100 px-4 py-3 sm:px-5 sm:py-4 shadow-sm">
                 <p className="text-blue-400 text-[10px] font-bold uppercase tracking-widest mb-1">{card.label}</p>
@@ -486,17 +445,15 @@ export default function BudgetsPage() {
                 <span className={`text-sm font-black ${oc.textClass}`}>{rawPct}%</span>
               </div>
               <div className="w-full bg-blue-50 rounded-full h-3 overflow-hidden">
-                <div
-                  className={`h-3 rounded-full transition-all duration-700 ${oc.barClass}`}
-                  style={{ width: `${Math.min(rawPct, 100)}%` }}
-                />
+                <div className={`h-3 rounded-full transition-all duration-700 ${oc.barClass}`}
+                  style={{ width: `${Math.min(rawPct, 100)}%` }} />
               </div>
               <div className="flex justify-between mt-1.5">
-                <span className="text-blue-300 text-xs">${summary.totalSpentUsd.toFixed(2)} spent</span>
+                <span className="text-blue-300 text-xs">{fmtPrimary(summary.totalSpentUsd, pref)} spent</span>
                 <span className={`text-xs font-semibold ${oc.textClass}`}>
                   {rawPct > 100
-                    ? `$${(summary.totalSpentUsd - summary.totalLimitUsd).toFixed(2)} over budget`
-                    : `$${summary.totalRemainingUsd.toFixed(2)} left`}
+                    ? `${fmtPrimary(summary.totalSpentUsd - summary.totalLimitUsd, pref)} over budget`
+                    : `${fmtPrimary(summary.totalRemainingUsd, pref)} left`}
                 </span>
               </div>
             </div>
@@ -568,7 +525,7 @@ export default function BudgetsPage() {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
             {filtered.map(s => (
-              <BudgetCard key={s.id} status={s} onEdit={openEdit} onDelete={setDeleteTarget} />
+              <BudgetCard key={s.id} status={s} pref={pref} onEdit={openEdit} onDelete={setDeleteTarget} />
             ))}
           </div>
         )}
@@ -576,24 +533,13 @@ export default function BudgetsPage() {
         <div className="h-4 sm:h-0" />
       </div>
 
-      {/* Modals */}
       {modalOpen && (
-        <BudgetModal
-          editStatus={editStatus}
-          categories={categories}
-          onSave={handleSave}
-          onClose={closeModal}
-          saving={saving}
-          error={saveError}
-        />
+        <BudgetModal editStatus={editStatus} categories={categories}
+          onSave={handleSave} onClose={closeModal} saving={saving} error={saveError} />
       )}
       {deleteTarget && (
-        <DeleteModal
-          status={deleteTarget}
-          onConfirm={handleDelete}
-          onClose={() => setDeleteTarget(null)}
-          deleting={deleting}
-        />
+        <DeleteModal status={deleteTarget} onConfirm={handleDelete}
+          onClose={() => setDeleteTarget(null)} deleting={deleting} />
       )}
     </>
   );

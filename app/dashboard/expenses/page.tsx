@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/contexts/AuthContext";
 import { useExpenses } from "@/hooks/useExpenses";
 import { useCategories } from "@/hooks/useCategories";
 import { expenseService } from "@/services/expense.service";
@@ -13,14 +14,17 @@ const KHR_RATE = 4000;
 
 function fmtUSD(n: number) { return `$${n.toFixed(2)}`; }
 function fmtKHR(usd: number) { return `៛${Math.round(usd * KHR_RATE).toLocaleString()}`; }
+function fmtPrimary(usd: number, pref: "USD" | "KHR") { return pref === "KHR" ? fmtKHR(usd) : fmtUSD(usd); }
+function fmtSecondary(usd: number, pref: "USD" | "KHR") { return pref === "KHR" ? fmtUSD(usd) : fmtKHR(usd); }
+
 function fmtDate(iso: string) {
   const d = new Date(iso + "T00:00:00");
   return `${MONTHS[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
 }
 
 // ─── Delete modal ─────────────────────────────────────────────────
-function DeleteModal({ expense, onConfirm, onClose, deleting }: {
-  expense: Expense; onConfirm: () => void; onClose: () => void; deleting: boolean;
+function DeleteModal({ expense, pref, onConfirm, onClose, deleting }: {
+  expense: Expense; pref: "USD" | "KHR"; onConfirm: () => void; onClose: () => void; deleting: boolean;
 }) {
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
@@ -34,8 +38,9 @@ function DeleteModal({ expense, onConfirm, onClose, deleting }: {
             {expense.category.icon}
           </div>
           <h3 className="text-blue-800 font-black text-xl font-['Sora',sans-serif]">Delete this expense?</h3>
-          <p className="text-red-500 font-bold text-lg mt-1">{fmtUSD(expense.amountBase)}</p>
-          <p className="text-blue-300 text-sm">{fmtKHR(expense.amountBase)}</p>
+          {/* Show primary currency large, secondary dimmed */}
+          <p className="text-red-500 font-bold text-lg mt-1">{fmtPrimary(expense.amountBase, pref)}</p>
+          <p className="text-blue-300 text-sm">{fmtSecondary(expense.amountBase, pref)}</p>
           <p className="text-blue-400 text-sm mt-1">
             {expense.merchantName ?? expense.category.name} · {fmtDate(expense.date)}
           </p>
@@ -56,14 +61,29 @@ function DeleteModal({ expense, onConfirm, onClose, deleting }: {
 }
 
 // ─── Expense row ──────────────────────────────────────────────────
-function ExpenseRow({ expense, onEdit, onDelete }: {
-  expense: Expense; onEdit: (e: Expense) => void; onDelete: (e: Expense) => void;
+function ExpenseRow({ expense, pref, onEdit, onDelete }: {
+  expense: Expense; pref: "USD" | "KHR"; onEdit: (e: Expense) => void; onDelete: (e: Expense) => void;
 }) {
   const pmColors: Record<string, string> = {
     KHQR: "bg-blue-100 text-blue-600", CASH: "bg-green-50 text-green-600",
     CARD: "bg-yellow-50 text-yellow-600", BANK: "bg-purple-50 text-purple-600",
     APP: "bg-orange-50 text-orange-500", OTHER: "bg-slate-50 text-slate-500",
   };
+
+  // Native amount as entered (unchanged — this is what the user typed)
+  const nativeAmt = expense.currency === "KHR"
+    ? `៛${Math.round(expense.amount).toLocaleString()}`
+    : fmtUSD(expense.amount);
+
+  // Summary column: primary (via pref) + secondary dimmed
+  // amountBase is always USD, so we can drive fmtPrimary/fmtSecondary from it
+  const primaryAmt   = fmtPrimary(expense.amountBase, pref);
+  const secondaryAmt = fmtSecondary(expense.amountBase, pref);
+
+  // If the native amount already matches the preferred display, skip the secondary
+  const nativeMatchesPrimary =
+    (pref === "USD" && expense.currency === "USD") ||
+    (pref === "KHR" && expense.currency === "KHR");
 
   return (
     <div className="flex items-center gap-3 py-3 border-b border-blue-50 last:border-0 active:bg-blue-50/60 sm:hover:bg-blue-50/40 -mx-2 px-2 rounded-xl transition-all group">
@@ -87,13 +107,14 @@ function ExpenseRow({ expense, onEdit, onDelete }: {
       </div>
 
       <div className="text-right shrink-0">
-        <p className="text-red-500 font-bold text-sm leading-tight">
-          -{expense.currency === "USD"
-            ? fmtUSD(expense.amount)
-            : `៛${Math.round(expense.amount).toLocaleString()}`}
-        </p>
+        {/* Primary amount (respects pref) */}
+        <p className="text-red-500 font-bold text-sm leading-tight">-{primaryAmt}</p>
+        {/* Secondary: show native if it differs from primary, otherwise show the other currency */}
         <p className="text-blue-300 text-xs leading-tight">
-          {expense.currency === "KHR" ? `-${fmtUSD(expense.amountBase)}` : `-${fmtKHR(expense.amountBase)}`}
+          {nativeMatchesPrimary
+            ? `-${secondaryAmt}`          // native === primary, so show the other currency
+            : `-${nativeAmt}`             // native differs from primary, show how it was entered
+          }
         </p>
       </div>
 
@@ -121,9 +142,11 @@ function ExpenseRow({ expense, onEdit, onDelete }: {
 //  PAGE
 // ═══════════════════════════════════════════════════════════════════
 export default function ExpensesPage() {
-  const router = useRouter();
+  const { user } = useAuth();
+  const pref = user?.preferredCurrency ?? "USD";  // ✅ drives all display
 
-  const [catFilter,    setCatFilter]    = useState<string | null>(null);  // ✅ UUID: string | null
+  const router = useRouter();
+  const [catFilter,    setCatFilter]    = useState<string | null>(null);
   const [from,         setFrom]         = useState("");
   const [to,           setTo]           = useState("");
   const [showFilters,  setShowFilters]  = useState(false);
@@ -159,14 +182,8 @@ export default function ExpensesPage() {
   return (
     <>
       <style>{`
-        @keyframes slideUp {
-          from { opacity:0; transform:translateY(16px); }
-          to   { opacity:1; transform:translateY(0);    }
-        }
-        @keyframes fadeIn {
-          from { opacity:0; }
-          to   { opacity:1; }
-        }
+        @keyframes slideUp { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
+        @keyframes fadeIn  { from { opacity:0; } to { opacity:1; } }
       `}</style>
 
       <div className="w-full space-y-4">
@@ -213,13 +230,13 @@ export default function ExpensesPage() {
             </div>
             <div className="bg-white rounded-2xl border border-blue-100 px-4 py-3 sm:px-5 sm:py-4">
               <p className="text-blue-400 text-[10px] font-bold uppercase tracking-widest mb-1">Total Spent</p>
-              <p className="text-red-500 font-black text-lg sm:text-xl font-['Sora',sans-serif] leading-tight">{fmtUSD(totalUSD)}</p>
-              <p className="text-blue-300 text-xs mt-0.5">{fmtKHR(totalUSD)}</p>
+              <p className="text-red-500 font-black text-lg sm:text-xl font-['Sora',sans-serif] leading-tight">{fmtPrimary(totalUSD, pref)}</p>
+              <p className="text-blue-300 text-xs mt-0.5">{fmtSecondary(totalUSD, pref)}</p>
             </div>
             <div className="hidden sm:block bg-white rounded-2xl border border-blue-100 px-5 py-4">
               <p className="text-blue-400 text-[10px] font-bold uppercase tracking-widest mb-1">Average</p>
               <p className="text-blue-800 font-black text-xl font-['Sora',sans-serif] leading-tight">
-                {fmtUSD(expenses.length > 0 ? totalUSD / expenses.length : 0)}
+                {fmtPrimary(expenses.length > 0 ? totalUSD / expenses.length : 0, pref)}
               </p>
               <p className="text-blue-300 text-xs mt-0.5">per expense</p>
             </div>
@@ -289,7 +306,9 @@ export default function ExpensesPage() {
             <div className="hidden sm:flex items-center gap-4 px-8 py-3 border-b border-blue-50 bg-blue-50/50">
               <div className="w-11 shrink-0" />
               <div className="flex-1 text-blue-400 text-[10px] font-bold uppercase tracking-widest">Expense</div>
-              <div className="text-right text-blue-400 text-[10px] font-bold uppercase tracking-widest min-w-[100px] mr-2">Original · USD</div>
+              <div className="text-right text-blue-400 text-[10px] font-bold uppercase tracking-widest min-w-[100px] mr-2">
+                {pref} · {pref === "USD" ? "KHR" : "USD"}
+              </div>
               <div className="w-[72px] shrink-0" />
             </div>
           )}
@@ -335,6 +354,7 @@ export default function ExpensesPage() {
                 <ExpenseRow
                   key={e.id}
                   expense={e}
+                  pref={pref}
                   onEdit={exp => router.push(`/dashboard/expenses/edit/${exp.id}`)}
                   onDelete={setDeleteTarget}
                 />
@@ -349,6 +369,7 @@ export default function ExpensesPage() {
       {deleteTarget && (
         <DeleteModal
           expense={deleteTarget}
+          pref={pref}
           onConfirm={handleDelete}
           onClose={() => setDeleteTarget(null)}
           deleting={deleting}
