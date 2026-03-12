@@ -5,12 +5,15 @@ import { usePathname, useRouter } from "next/navigation";
 import { Bell } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { DashboardSidebar, MobileDrawer, MobileBottomNav } from "@/components/dashboard/DashboardSidebar";
-import { NAV_ITEMS } from "@/components/dashboard/nav-items";
+import { ALL_NAV_ITEMS } from "@/components/dashboard/nav-items";
 import { useAuth } from "@/contexts/AuthContext";
+import { useGroup, GroupProvider } from "@/contexts/GroupContext";
 
 /* ─── Mobile top header ──────────────────────────────────────────── */
 function MobileHeader({ onMenuOpen }: { onMenuOpen: () => void }) {
   const [notifOpen, setNotifOpen] = useState(false);
+  const { isGroup, activeContext } = useGroup();
+
   return (
     <header className="md:hidden sticky top-0 z-40 bg-white border-b border-blue-100 px-4 h-14 flex items-center gap-3">
       <button onClick={onMenuOpen}
@@ -20,16 +23,24 @@ function MobileHeader({ onMenuOpen }: { onMenuOpen: () => void }) {
         </svg>
       </button>
       <div className="flex items-center gap-1.5 shrink-0">
-        <div className="w-6 h-6 rounded-lg bg-blue-600 flex items-center justify-center">
+        <div className={`w-6 h-6 rounded-lg ${isGroup ? "bg-indigo-600" : "bg-blue-600"} flex items-center justify-center`}>
           <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5}
               d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
         </div>
-        <span className="text-blue-800 font-black text-base font-['Sora',sans-serif]">
-          Fin<span className="text-blue-600">Set</span>
+        <span className={`font-black text-base font-['Sora',sans-serif] ${isGroup ? "text-indigo-800" : "text-blue-800"}`}>
+          Fin<span className={isGroup ? "text-indigo-500" : "text-blue-600"}>Set</span>
         </span>
       </div>
+
+      {/* Context badge on mobile */}
+      {isGroup && (
+        <span className="bg-indigo-100 text-indigo-600 text-[10px] font-bold px-2 py-0.5 rounded-full truncate max-w-[80px]">
+          👥 {activeContext.groupName}
+        </span>
+      )}
+
       <div className="flex items-center gap-2 ml-auto">
         <div className="relative">
           <button onClick={() => setNotifOpen(!notifOpen)}
@@ -70,20 +81,35 @@ function MobileHeader({ onMenuOpen }: { onMenuOpen: () => void }) {
 function DesktopHeader() {
   const pathname = usePathname();
   const [notifOpen, setNotifOpen] = useState(false);
-  const active = NAV_ITEMS.slice().reverse().find(item => pathname.startsWith(item.href));
+  const { isGroup, activeContext } = useGroup();
+
+  const active = ALL_NAV_ITEMS.slice().reverse().find(item => pathname.startsWith(item.href));
   const pageTitle = active?.label ?? "Dashboard";
-  const PageIcon: LucideIcon = active?.icon ?? NAV_ITEMS[0].icon;
+  const PageIcon: LucideIcon = active?.icon ?? ALL_NAV_ITEMS[0].icon;
 
   return (
     <header className="hidden md:flex h-16 bg-white border-b border-blue-100 items-center justify-between px-8 shrink-0 z-10">
       <div className="flex items-center gap-3">
-        <div className="w-9 h-9 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center">
-          <PageIcon size={18} className="text-blue-500" strokeWidth={2} />
+        <div className={`w-9 h-9 rounded-xl ${isGroup ? "bg-indigo-50 border-indigo-100" : "bg-blue-50 border-blue-100"} border flex items-center justify-center`}>
+          <PageIcon size={18} className={isGroup ? "text-indigo-500" : "text-blue-500"} strokeWidth={2} />
         </div>
         <div>
-          <h1 className="text-blue-800 font-black text-lg font-['Sora',sans-serif] leading-none">{pageTitle}</h1>
+          <h1 className={`font-black text-lg font-['Sora',sans-serif] leading-none ${isGroup ? "text-indigo-800" : "text-blue-800"}`}>
+            {pageTitle}
+          </h1>
         </div>
+
+        {/* Context badge — shows which group is active */}
+        {isGroup && (
+          <div className="flex items-center gap-1.5 ml-2 bg-indigo-50 border border-indigo-100 rounded-xl px-3 py-1.5">
+            <span className="text-sm">👥</span>
+            <span className="text-indigo-700 text-xs font-bold">{activeContext.groupName}</span>
+            <span className="text-indigo-300 text-[10px]">·</span>
+            <span className="text-indigo-400 text-[11px]">{activeContext.groupMembers?.length ?? 0} members</span>
+          </div>
+        )}
       </div>
+
       <div className="flex items-center gap-4">
         <div className="relative">
           <button onClick={() => setNotifOpen(!notifOpen)}
@@ -167,6 +193,7 @@ function DashboardInner({ children }: { children: React.ReactNode }) {
 
 /* ═══════════════════════════════════════════════════════════════════
    DASHBOARD LAYOUT
+   GroupProvider wraps everything so any child can call useGroup()
 ═══════════════════════════════════════════════════════════════════ */
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -181,7 +208,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         @keyframes slide-in { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
         .card-in { animation: slide-in 0.45s ease both; }
       `}</style>
-      <DashboardInner>{children}</DashboardInner>
+      <GroupProvider>
+        <DashboardInner>{children}</DashboardInner>
+      </GroupProvider>
     </>
   );
 }

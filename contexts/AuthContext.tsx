@@ -17,13 +17,29 @@ interface AuthContextType {
   loginWithGoogle: () => void;
   logout: () => Promise<void>;
   clearError: () => void;
-  updateCurrency: (currency: "USD" | "KHR") => Promise<void>;  // ✅ NEW
+  updateCurrency: (currency: "USD" | "KHR") => Promise<void>;
 }
 
-const PUBLIC_PATHS = ["/login", "/signup", "/forgot-password"];
+const PUBLIC_PATHS = ["/login", "/signup", "/forgot-password", "/join"];
 
 // ─── Context ──────────────────────────────────────────────────────
 const AuthContext = createContext<AuthContextType | null>(null);
+
+// ─── Redirect helpers ─────────────────────────────────────────────
+// We store the post-auth destination in sessionStorage so it survives
+// the Google OAuth full-page redirect without polluting the URL.
+const REDIRECT_KEY = "finset_auth_redirect";
+
+function saveRedirect(path: string) {
+  if (typeof window !== "undefined") sessionStorage.setItem(REDIRECT_KEY, path);
+}
+
+function popRedirect(): string {
+  if (typeof window === "undefined") return "/dashboard";
+  const val = sessionStorage.getItem(REDIRECT_KEY) ?? "/dashboard";
+  sessionStorage.removeItem(REDIRECT_KEY);
+  return val;
+}
 
 // ─── Provider ─────────────────────────────────────────────────────
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -35,7 +51,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     authService.me()
-      .then(setUser)
+      .then(u => {
+        setUser(u);
+        // If we just came back from Google OAuth and there's a saved redirect, use it
+        if (typeof window !== "undefined") {
+          const stored = sessionStorage.getItem(REDIRECT_KEY);
+          if (stored) router.replace(popRedirect());
+        }
+      })
       .catch(() => {
         setUser(null);
         const isPublic = PUBLIC_PATHS.some(p => pathname.startsWith(p));
@@ -51,7 +74,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const u = await authService.login(email, password);
       setUser(u);
-      router.push("/dashboard");
+      // Respect ?redirect= query param, then sessionStorage, then default
+      const params   = new URLSearchParams(window.location.search);
+      const redirect = params.get("redirect") || popRedirect();
+      router.push(redirect);
     } catch (err: any) {
       setError(err.message || "Invalid email or password");
     } finally {
@@ -59,7 +85,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [router]);
 
-  // ✅ register now accepts optional preferredCurrency
   const register = useCallback(async (
     name: string,
     email: string,
@@ -80,6 +105,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const loginWithGoogle = useCallback(() => {
+    // Save the ?redirect= param (if any) to sessionStorage before the
+    // full-page redirect to Google. After OAuth completes, Spring Boot
+    // redirects back to the frontend, then the useEffect above picks up
+    // the stored redirect and navigates there.
+    const params   = new URLSearchParams(window.location.search);
+    const redirect = params.get("redirect");
+    if (redirect) saveRedirect(redirect);
     authService.loginWithGoogle();
   }, []);
 
@@ -96,7 +128,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const clearError = useCallback(() => setError(null), []);
 
-  // ✅ NEW: call API and sync user state — no page reload needed
   const updateCurrency = useCallback(async (currency: "USD" | "KHR") => {
     const updated = await userService.updatePreferredCurrency(currency);
     setUser(updated);
