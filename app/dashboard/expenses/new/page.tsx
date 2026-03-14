@@ -5,19 +5,29 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { expenseService } from "@/services/expense.service";
 import { useCategories } from "@/hooks/useCategories";
+import { useGroup } from "@/contexts/GroupContext";
 import type { ExpenseRequest } from "@/types/expense.types";
 import { ExpenseFormFields } from "../_components/ExpenseFormFields";
 import { PreviewCard } from "../_components/PreviewCard";
 
 const KHR_RATE = 4000;
 
+// ═══════════════════════════════════════════════════════════════════
+//  Route: /dashboard/expenses/new
+//  Calls: POST /api/expenses  (personal)
+//      or POST /api/expenses/group/{groupId}  (group context)
+// ═══════════════════════════════════════════════════════════════════
 export default function NewExpensePage() {
   const router = useRouter();
+  const { isGroup, activeContext } = useGroup();
+
+  // Derive groupId — only set when the user is actively in a group context
+  const groupId = isGroup && activeContext.type === "group" ? activeContext.groupId : undefined;
 
   const [amount,     setAmount]     = useState("");
   const [currency,   setCurrency]   = useState<"USD" | "KHR">("USD");
   const [date,       setDate]       = useState(new Date().toISOString().split("T")[0]);
-  const [categoryId, setCategoryId] = useState<string | "">("");  // ✅ UUID: string | ""
+  const [categoryId, setCategoryId] = useState<string | "">("");
   const [merchant,   setMerchant]   = useState("");
   const [note,       setNote]       = useState("");
   const [payMethod,  setPayMethod]  = useState("CASH");
@@ -43,12 +53,20 @@ export default function NewExpensePage() {
     try {
       const payload: ExpenseRequest = {
         amount: parseFloat(amount), currency, date,
-        categoryId,                              // ✅ UUID: already a string, no Number() wrap
+        categoryId,
         merchantName:  merchant.trim() || undefined,
         note:          note.trim()     || undefined,
         paymentMethod: payMethod,
       };
-      await expenseService.create(payload);
+
+      // Group context → POST /api/expenses/group/{groupId}
+      // Personal      → POST /api/expenses
+      if (groupId) {
+        await expenseService.createForGroup(groupId, payload);
+      } else {
+        await expenseService.create(payload);
+      }
+
       router.push("/dashboard/expenses");
     } catch (e: any) {
       setPageError(e.message ?? "Failed to add expense");
@@ -109,7 +127,9 @@ export default function NewExpensePage() {
               </svg>
             </Link>
             <div>
-              <p className="text-blue-400 text-[10px] sm:text-xs font-bold uppercase tracking-widest">New expense</p>
+              <p className="text-blue-400 text-[10px] sm:text-xs font-bold uppercase tracking-widest">
+                {isGroup ? `Adding to ${activeContext.groupName}` : "New expense"}
+              </p>
               <h1 className="text-blue-800 font-black text-xl sm:text-3xl font-['Sora',sans-serif] leading-tight">Add Expense</h1>
             </div>
           </div>
@@ -122,6 +142,14 @@ export default function NewExpensePage() {
             Preview
           </button>
         </div>
+
+        {/* Group context banner */}
+        {isGroup && (
+          <div className="flex items-center gap-3 bg-indigo-50 border border-indigo-100 text-indigo-600 text-sm px-4 py-3 rounded-2xl">
+            <span className="text-lg">👥</span>
+            <p>This expense will be added to <strong>{activeContext.groupName}</strong> and visible to all members.</p>
+          </div>
+        )}
 
         {/* Mini preview bar — mobile */}
         {numAmt > 0 && (

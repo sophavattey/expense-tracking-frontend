@@ -1,15 +1,17 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { TrendingDown, TrendingUp, PiggyBank, ScanLine, ChevronLeft, ChevronRight, type LucideIcon } from "lucide-react";
+import { TrendingDown, TrendingUp, PiggyBank, ScanLine, ChevronLeft, ChevronRight, Users, Calendar, Search, Wallet, Tag, type LucideIcon } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useGroup } from "@/contexts/GroupContext";
 import { useExpenses } from "@/hooks/useExpenses";
 import { useBudgets } from "@/hooks/useBudgets";
 import { expenseService } from "@/services/expense.service";
 import { getBudgetColor } from "@/utils/budgetColors";
 import type { Expense, MonthlySummary } from "@/types/expense.types";
 import type { BudgetStatus } from "@/types/budget.types";
+import type { GroupMember } from "@/types/group.types";
 
 /* ─── constants ─────────────────────────────────────────────────── */
 const KHR_RATE  = 4000;
@@ -31,50 +33,76 @@ function fmtDate(iso: string) {
   return `${SHORT_MON[d.getMonth()]} ${d.getDate()}`;
 }
 
-/** Returns true if year/month is the current calendar month */
 function isCurrentMonth(year: number, month: number) {
   return year === TODAY.getFullYear() && month === TODAY.getMonth() + 1;
+}
+
+/* ─── Member avatar ─────────────────────────────────────────────── */
+function MemberAvatar({ member, size = "sm" }: { member: GroupMember; size?: "sm" | "md" }) {
+  const cls = size === "md" ? "w-9 h-9 text-sm" : "w-6 h-6 text-[10px]";
+  return member.avatar
+    ? <img src={member.avatar} alt={member.name} className={`${cls} rounded-full object-cover ring-2 ring-white`} />
+    : (
+      <div className={`${cls} rounded-full bg-indigo-500 ring-2 ring-white flex items-center justify-center font-bold text-white`}>
+        {member.name.charAt(0).toUpperCase()}
+      </div>
+    );
+}
+
+/* ─── Group member strip ────────────────────────────────────────── */
+function GroupMemberStrip({ members }: { members: GroupMember[] }) {
+  return (
+    <div className="flex items-center gap-3">
+      <div className="flex -space-x-2">
+        {members.slice(0, 5).map(m => (
+          <div key={m.userId} title={m.name}>
+            <MemberAvatar member={m} size="md" />
+          </div>
+        ))}
+        {members.length > 5 && (
+          <div className="w-9 h-9 rounded-full bg-indigo-700 ring-2 ring-white flex items-center justify-center text-white text-[10px] font-bold">
+            +{members.length - 5}
+          </div>
+        )}
+      </div>
+      <div>
+        <p className="text-indigo-100 text-xs font-semibold">{members.length} member{members.length !== 1 ? "s" : ""}</p>
+        <p className="text-indigo-300 text-[10px]">{members.map(m => m.name.split(" ")[0]).join(", ")}</p>
+      </div>
+    </div>
+  );
 }
 
 /* ═══════════════════════════════════════════════════════════════════
    MONTH NAVIGATOR
 ═══════════════════════════════════════════════════════════════════ */
-function MonthNavigator({
-  year, month, onChange
-}: {
+function MonthNavigator({ year, month, onChange }: {
   year: number; month: number;
   onChange: (year: number, month: number) => void;
 }) {
   const isCurrent = isCurrentMonth(year, month);
   const label = new Date(year, month - 1, 1).toLocaleDateString("en-US", { month: "long", year: "numeric" });
 
-  const goBack = () => {
-    if (month === 1) onChange(year - 1, 12);
-    else             onChange(year, month - 1);
-  };
+  const goBack = () => { if (month === 1) onChange(year - 1, 12); else onChange(year, month - 1); };
   const goForward = () => {
     if (isCurrent) return;
-    if (month === 12) onChange(year + 1, 1);
-    else              onChange(year, month + 1);
+    if (month === 12) onChange(year + 1, 1); else onChange(year, month + 1);
   };
 
   return (
     <div className="flex items-center gap-1 bg-white/15 backdrop-blur-sm border border-white/20 rounded-xl px-1 py-1">
-      <button onClick={goBack}
-        className="w-7 h-7 rounded-lg flex items-center justify-center text-white/70 hover:text-white hover:bg-white/15 transition-all">
+      <button onClick={goBack} className="w-7 h-7 rounded-lg flex items-center justify-center text-white/70 hover:text-white hover:bg-white/15 transition-all">
         <ChevronLeft size={15} strokeWidth={2.5} />
       </button>
       <span className="text-white text-xs font-bold px-2 min-w-[120px] text-center">{label}</span>
       <button onClick={goForward} disabled={isCurrent}
         className={`w-7 h-7 rounded-lg flex items-center justify-center transition-all
-          ${isCurrent
-            ? "text-white/20 cursor-not-allowed"
-            : "text-white/70 hover:text-white hover:bg-white/15"}`}>
+          ${isCurrent ? "text-white/20 cursor-not-allowed" : "text-white/70 hover:text-white hover:bg-white/15"}`}>
         <ChevronRight size={15} strokeWidth={2.5} />
       </button>
       {!isCurrent && (
         <button onClick={() => onChange(TODAY.getFullYear(), TODAY.getMonth() + 1)}
-          className="ml-1 text-[10px] font-bold text-blue-200 hover:text-white bg-white/10 hover:bg-white/20 px-2 py-1 rounded-lg transition-all">
+          className="ml-1 text-[10px] font-bold text-white/70 hover:text-white bg-white/10 hover:bg-white/20 px-2 py-1 rounded-lg transition-all">
           Today
         </button>
       )}
@@ -141,26 +169,21 @@ function DonutChart({ slices, totalUsd, pref }: { slices: DonutSlice[]; totalUsd
 
 /* ═══════════════════════════════════════════════════════════════════
    SPENDING BAR CHART
-   — selectedIdx highlights the bar matching the selected month
 ═══════════════════════════════════════════════════════════════════ */
-function SpendingChart({
-  data, pref, selectedIdx, onSelect
-}: {
+function SpendingChart({ data, pref, selectedIdx, onSelect }: {
   data: { label: string; amount: number }[];
   pref: "USD" | "KHR";
-  selectedIdx: number;
+  selectedIdx: number;         // FIX: now driven by parent, not hardcoded
   onSelect: (idx: number) => void;
 }) {
   const [hovered, setHovered] = useState<number | null>(null);
   const max = Math.max(...data.map(d => d.amount), 1);
 
   return (
-    <div className="flex items-end gap-1.5 h-36 w-full mt-4">
+    <div className="flex items-end gap-1.5 w-full mt-4">
       {data.map((d, i) => {
-        const h      = (d.amount / max) * 100;
-        const isHov  = hovered === i;
-        const isSel  = i === selectedIdx;
-        const isCur  = i === data.length - 1; // rightmost = current calendar month
+        const h = (d.amount / max) * 100;
+        const isHov = hovered === i, isSel = i === selectedIdx;
         return (
           <div key={i} className="flex-1 flex flex-col items-center gap-0.5 cursor-pointer"
             onMouseEnter={() => setHovered(i)} onMouseLeave={() => setHovered(null)}
@@ -171,16 +194,13 @@ function SpendingChart({
                 {fmtPrimary(d.amount, pref)}
               </div>
             )}
-            <div className="w-full flex items-end" style={{ height: "96px" }}>
-              <div
-                className={`w-full rounded-t transition-all duration-300
-                  ${isSel  ? "bg-blue-600 ring-2 ring-blue-400 ring-offset-1" :
-                    isCur  ? "bg-blue-300" :
-                    isHov  ? "bg-blue-400" : "bg-blue-100"}`}
-                style={{ height: `${h}%`, minHeight: d.amount > 0 ? "4px" : "0px" }}
-              />
+            <div className="w-full flex items-end" style={{ height: "140px" }}>
+              <div className={`w-full rounded-t transition-all duration-300
+                ${isSel  ? "bg-blue-600 ring-2 ring-blue-400 ring-offset-1" :
+                  isHov  ? "bg-blue-400" : "bg-blue-100"}`}
+                style={{ height: `${h}%`, minHeight: d.amount > 0 ? "4px" : "0px" }} />
             </div>
-            <span className={`text-[8px] font-medium leading-none
+            <span className={`text-[8px] font-medium leading-none mt-1
               ${isSel ? "text-blue-600 font-black" : isHov ? "text-blue-500" : "text-blue-300"}`}>
               {d.label}
             </span>
@@ -235,7 +255,16 @@ function BudgetBar({ status, pref }: { status: BudgetStatus; pref: "USD" | "KHR"
       <div className="flex items-center justify-between mb-1.5">
         <div className="flex items-center gap-2">
           <span className="text-base">{catIcon}</span>
-          <span className="text-blue-700 text-sm font-semibold">{catName}</span>
+          <div>
+            <span className="text-blue-700 text-sm font-semibold">{catName}</span>
+            {/* FIX: show period badge for non-monthly budgets */}
+            {status.period !== "MONTHLY" && (
+              <span className={`ml-1.5 text-[9px] font-bold px-1.5 py-0.5 rounded-md
+                ${status.period === "DAILY"  ? "bg-purple-50 text-purple-500" : "bg-yellow-50 text-yellow-600"}`}>
+                {status.period}
+              </span>
+            )}
+          </div>
         </div>
         <div className="flex items-center gap-1.5">
           <color.Icon size={12} strokeWidth={2.5} className={color.iconClass} />
@@ -265,15 +294,14 @@ function BudgetBar({ status, pref }: { status: BudgetStatus; pref: "USD" | "KHR"
    TRANSACTION ROW
 ═══════════════════════════════════════════════════════════════════ */
 const PM_COLORS: Record<string, string> = {
-  KHQR:  "bg-blue-100 text-blue-500",
-  CASH:  "bg-green-50 text-green-600",
-  CARD:  "bg-yellow-50 text-yellow-600",
-  BANK:  "bg-purple-50 text-purple-600",
-  APP:   "bg-orange-50 text-orange-500",
-  OTHER: "bg-slate-50 text-slate-500",
+  KHQR: "bg-blue-100 text-blue-500", CASH: "bg-green-50 text-green-600",
+  CARD: "bg-yellow-50 text-yellow-600", BANK: "bg-purple-50 text-purple-600",
+  APP: "bg-orange-50 text-orange-500", OTHER: "bg-slate-50 text-slate-500",
 };
 
-function TxRow({ expense, delay }: { expense: Expense; delay: number }) {
+function TxRow({ expense, delay, groupMembers }: {
+  expense: Expense; delay: number; groupMembers?: GroupMember[];
+}) {
   const [vis, setVis] = useState(false);
   useEffect(() => { const t = setTimeout(() => setVis(true), delay); return () => clearTimeout(t); }, [delay]);
 
@@ -281,13 +309,20 @@ function TxRow({ expense, delay }: { expense: Expense; delay: number }) {
     ? `៛${Math.round(expense.amount).toLocaleString()}`
     : fmtUSD(expense.amount);
 
+  const author = groupMembers?.find(m => m.userId === (expense as any).userId);
+
   return (
     <div className={`flex items-center gap-4 py-3 border-b border-blue-50 last:border-0 hover:bg-blue-50/50 -mx-2 px-2 rounded-xl transition-all
       ${vis ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-3"}`}
       style={{ transition: `opacity 0.4s ease ${delay}ms, transform 0.4s ease ${delay}ms` }}>
-      <div className="w-10 h-10 rounded-xl flex items-center justify-center text-lg shrink-0"
+      <div className="w-10 h-10 rounded-xl flex items-center justify-center text-lg shrink-0 relative"
         style={{ backgroundColor: expense.category.color + "18", border: `1.5px solid ${expense.category.color}30` }}>
         {expense.category.icon}
+        {author && (
+          <div className="absolute -bottom-1 -right-1">
+            <MemberAvatar member={author} size="sm" />
+          </div>
+        )}
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-blue-800 text-sm font-semibold truncate leading-tight">
@@ -297,6 +332,7 @@ function TxRow({ expense, delay }: { expense: Expense; delay: number }) {
           <span className="text-blue-300 text-xs">{expense.category.name}</span>
           <span className="text-blue-200 text-xs">·</span>
           <span className="text-blue-300 text-xs truncate">{fmtDate(expense.date)}</span>
+          {author && <span className="text-indigo-400 text-xs">· {author.name.split(" ")[0]}</span>}
         </div>
       </div>
       <div className="text-right shrink-0">
@@ -314,146 +350,139 @@ function TxRow({ expense, delay }: { expense: Expense; delay: number }) {
 ═══════════════════════════════════════════════════════════════════ */
 export default function DashboardPage() {
   const { user } = useAuth();
+  const { isGroup, activeContext } = useGroup();
   const pref = user?.preferredCurrency ?? "USD";
 
-  /* ── Selected month (defaults to current) ── */
+  const groupId      = isGroup && activeContext.type === "group" ? activeContext.groupId      : undefined;
+  const groupMembers = isGroup && activeContext.type === "group" ? (activeContext.groupMembers ?? []) : [];
+
+  /* ── Selected month ── */
   const [selYear,  setSelYear]  = useState(TODAY.getFullYear());
   const [selMonth, setSelMonth] = useState(TODAY.getMonth() + 1);
   const isPast = !isCurrentMonth(selYear, selMonth);
 
   const handleMonthChange = useCallback((y: number, m: number) => {
-    setSelYear(y);
-    setSelMonth(m);
-    setTxFilter("All");
-    setTxCount(5);
+    setSelYear(y); setSelMonth(m); setTxFilter("All"); setTxCount(5);
   }, []);
 
-  /* ── Date range for selected month ── */
+  /* ── Date range ── */
   const monthStart = `${selYear}-${String(selMonth).padStart(2, "0")}-01`;
   const lastDay    = new Date(selYear, selMonth, 0).getDate();
   const monthEnd   = `${selYear}-${String(selMonth).padStart(2, "0")}-${lastDay}`;
 
-  /* ── Data fetching ── */
-  const { expenses, loading: expLoading } = useExpenses({ size: 200, from: monthStart, to: monthEnd });
-  // Budgets always reflect current period — hide for past months
-  const { summary: budgetSummary, loading: budgetLoading } = useBudgets();
+  /* ── Data ── */
+  const { expenses, loading: expLoading }                  = useExpenses({ size: 200, from: monthStart, to: monthEnd, groupId });
+  const { summary: budgetSummary, loading: budgetLoading } = useBudgets({ groupId });
 
   const [monthlySummary, setMonthlySummary] = useState<MonthlySummary | null>(null);
   const [chartData,      setChartData]      = useState<{ label: string; amount: number; year: number; month: number }[]>([]);
   const [chartLoading,   setChartLoading]   = useState(true);
   const [summaryLoading, setSummaryLoading] = useState(true);
 
-  /* ── Fetch 13-month chart history centered on selected month ── */
-  // Window: 6 before → selected (center, index 6) → 6 after
-  // Re-runs whenever the selected month changes
+  /* ── Chart: selected bar = selMonth-1 (0-based index in the Jan–Dec array) ── */
+  const [selectedBarIdx, setSelectedBarIdx] = useState(TODAY.getMonth());
+
+  /* ── Reset when switching context ── */
+  useEffect(() => {
+    setSelYear(TODAY.getFullYear());
+    setSelMonth(TODAY.getMonth() + 1);
+    setTxFilter("All");
+    setTxCount(5);
+    setSelectedBarIdx(TODAY.getMonth());
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [groupId]);
+
+  /* ── Jan–Dec chart for selYear ── */
   useEffect(() => {
     let cancelled = false;
     setChartLoading(true);
-    const fetchHistory = async () => {
-      const promises = Array.from({ length: 13 }, (_, i) => {
-        const d = new Date(selYear, selMonth - 1 - 6 + i, 1);
-        const y = d.getFullYear(), m = d.getMonth() + 1;
-        return expenseService
-          .getSummary({ year: y, month: m })
-          .then(s => ({ label: SHORT_MON[d.getMonth()], amount: s.totalSpentUsd ?? 0, year: y, month: m }))
-          .catch(() => ({ label: SHORT_MON[d.getMonth()], amount: 0, year: y, month: m }));
-      });
-      const history = await Promise.all(promises);
-      if (!cancelled) { setChartData(history); setChartLoading(false); }
-    };
-    fetchHistory();
+    // Always show all 12 months of selYear
+    const promises = Array.from({ length: 12 }, (_, i) => {
+      const m = i + 1; // 1-based month
+      const fetch = groupId
+        ? expenseService.getGroupSummary(groupId, { year: selYear, month: m })
+        : expenseService.getSummary({ year: selYear, month: m });
+      return fetch
+        .then(s => ({ label: SHORT_MON[i], amount: s.totalSpentUsd ?? 0, year: selYear, month: m }))
+        .catch(() => ({ label: SHORT_MON[i], amount: 0, year: selYear, month: m }));
+    });
+    Promise.all(promises).then(history => {
+      if (!cancelled) {
+        setChartData(history);
+        setChartLoading(false);
+        // Highlight the currently viewed month
+        setSelectedBarIdx(selMonth - 1);
+      }
+    });
     return () => { cancelled = true; };
-  }, [selYear, selMonth]);
+  }, [selYear, groupId]); // rebuild only when year or group changes
 
-  /* ── Fetch summary for selected month ── */
+  /* ── Keep bar highlight in sync when user navigates months ── */
+  useEffect(() => {
+    setSelectedBarIdx(selMonth - 1);
+  }, [selMonth]);
+
+  /* ── Monthly summary ── */
   useEffect(() => {
     let cancelled = false;
     setSummaryLoading(true);
-    expenseService
-      .getSummary({ year: selYear, month: selMonth })
+    const fetch = groupId
+      ? expenseService.getGroupSummary(groupId, { year: selYear, month: selMonth })
+      : expenseService.getSummary({ year: selYear, month: selMonth });
+    fetch
       .then(s => { if (!cancelled) setMonthlySummary(s); })
       .catch(() => { if (!cancelled) setMonthlySummary(null); })
       .finally(() => { if (!cancelled) setSummaryLoading(false); });
     return () => { cancelled = true; };
-  }, [selYear, selMonth]);
+  }, [selYear, selMonth, groupId]);
 
-  /* ── Chart: selected month is always center bar (index 6) ── */
-  const selectedChartIdx = 6;
-
-  /* ── Clicking a bar changes selected month ── */
+  /* ── Clicking a bar navigates to that month (bar index = month - 1) ── */
   const handleBarSelect = useCallback((idx: number) => {
     const bar = chartData[idx];
-    if (bar) handleMonthChange(bar.year, bar.month);
+    if (!bar) return;
+    setSelectedBarIdx(idx);
+    handleMonthChange(bar.year, bar.month);
   }, [chartData, handleMonthChange]);
 
   /* ── Derived values ── */
   const totalSpentUsd = monthlySummary?.totalSpentUsd ?? expenses.reduce((s, e) => s + e.amountBase, 0);
   const digitalCount  = expenses.filter(e => e.paymentMethod === "KHQR" || e.paymentMethod === "APP").length;
 
-  /**
-   * Budget figures:
-   * - Current month  → use live useBudgets() data (real-time period tracking)
-   * - Past month     → rebuild BudgetStatus[] from budget limits + actual expenses
-   *                    for that month, so spent/remaining reflect historical reality
-   */
-  const historicalStatuses: BudgetStatus[] = useMemo(() => {
-    if (!isPast || !budgetSummary) return [];
+  /* ── FIX: show ALL budget periods, not just monthly ── */
+  // useMemo no longer needed — past months show no budget data at all
+  // For past months: don't show budget data — we only have current-period budgets,
+  // not what the user had set in that past month. Showing current limits against
+  // past spending would be misleading.
+  const activeBudgetStatuses = isPast ? [] : (budgetSummary?.statuses ?? []);
 
-    // How many periods fit in the selected month — scales the limit correctly:
-    //   MONTHLY → 1          (the whole month is one period)
-    //   WEEKLY  → weeks that overlap this month (usually 4–5)
-    //   DAILY   → days in the month (28–31)
-    const daysInMonth  = new Date(selYear, selMonth, 0).getDate();
-    const periodCount  = (period: BudgetStatus["period"]) => {
-      if (period === "MONTHLY") return 1;
-      if (period === "DAILY")   return daysInMonth;
-      // WEEKLY: count Mondays in this month (= number of full/partial weeks)
-      let mondays = 0;
-      for (let d = 1; d <= daysInMonth; d++) {
-        if (new Date(selYear, selMonth - 1, d).getDay() === 1) mondays++;
-      }
-      return mondays || 4; // fallback to 4 if something goes wrong
-    };
-
-    return budgetSummary.statuses.map(s => {
-      const scaledLimit = s.limitUsd * periodCount(s.period);
-      const spent       = expenses
-        .filter(e => s.category === null || e.category.id === s.category?.id)
-        .reduce((sum, e) => sum + e.amountBase, 0);
-      const remaining   = scaledLimit - spent;
-      const pct         = scaledLimit > 0 ? Math.round((spent / scaledLimit) * 100) : 0;
-      return {
-        ...s,
-        limitUsd:     scaledLimit,
-        limitKhr:     Math.round(scaledLimit * KHR_RATE),
-        spentUsd:     spent,
-        spentKhr:     Math.round(spent * KHR_RATE),
-        remainingUsd: remaining,
-        remainingKhr: Math.round(remaining * KHR_RATE),
-        percentage:   pct,
-        isOver:       spent > scaledLimit,
-      };
-    });
-  }, [isPast, budgetSummary, expenses, selYear, selMonth]);
-
-  const activeBudgetStatuses = isPast ? historicalStatuses : (budgetSummary?.statuses ?? []);
-
-  // Totals — only MONTHLY budgets, matching the selected month view
+  // Monthly-only totals for the stat cards (daily/weekly would skew the number)
   const monthlyStatuses = activeBudgetStatuses.filter(s => s.period === "MONTHLY");
-  const budgetLimitUsd  = monthlyStatuses.reduce((s, b) => s + b.limitUsd,  0);
-  const budgetSpentUsd  = monthlyStatuses.reduce((s, b) => s + b.spentUsd,  0);
+  const budgetLimitUsd  = monthlyStatuses.reduce((s, b) => s + b.limitUsd, 0);
+  const budgetSpentUsd  = monthlyStatuses.reduce((s, b) => s + b.spentUsd, 0);
   const budgetRawPct    = budgetLimitUsd > 0 ? Math.round((budgetSpentUsd / budgetLimitUsd) * 100) : 0;
   const overallColor    = getBudgetColor(budgetRawPct);
 
-  // MoM: center bar (index 6) vs the bar immediately to its left (index 5)
-  const selChartAmt  = chartData[6]?.amount ?? totalSpentUsd;
-  const prevChartAmt = chartData[5]?.amount ?? 0;
+  const selChartAmt  = chartData[selectedBarIdx]?.amount ?? totalSpentUsd;
+  const prevChartAmt = chartData[selectedBarIdx > 0 ? selectedBarIdx - 1 : 0]?.amount ?? 0;
   const momDiff      = prevChartAmt > 0 ? Math.round(((selChartAmt - prevChartAmt) / prevChartAmt) * 100) : 0;
 
-  const donutSlices: DonutSlice[] = (monthlySummary?.breakdown ?? []).map(b => ({
-    cat:      b.categoryName,
-    pct:      b.percentage,
-    color:    b.categoryColor || "#94a3b8",
+  /* Vivid fallback palette — used when a category has no custom color */
+  const SLICE_PALETTE = [
+    "#3b82f6", // blue
+    "#06b6d4", // cyan
+    "#8b5cf6", // violet
+    "#f59e0b", // amber
+    "#10b981", // emerald
+    "#ef4444", // red
+    "#f97316", // orange
+    "#ec4899", // pink
+    "#14b8a6", // teal
+    "#6366f1", // indigo
+  ];
+  const donutSlices: DonutSlice[] = (monthlySummary?.breakdown ?? []).map((b, i) => ({
+    cat: b.categoryName,
+    pct: b.percentage,
+    color: b.categoryColor || SLICE_PALETTE[i % SLICE_PALETTE.length],
     totalUsd: b.totalUsd,
   }));
 
@@ -464,53 +493,85 @@ export default function DashboardPage() {
   const totalFiltered = expenses.filter(e => txFilter === "All" || e.category.name === txFilter).length;
 
   const selMonthLabel = new Date(selYear, selMonth - 1, 1).toLocaleDateString("en-US", { month: "long", year: "numeric" });
-  const hour          = TODAY.getHours();
-  const greeting      = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+  const hour = TODAY.getHours();
+  const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+
+  const bannerClass = isGroup
+    ? "bg-linear-to-br from-indigo-900 via-indigo-700 to-indigo-500"
+    : "bg-linear-to-br from-blue-800 via-blue-700 to-blue-600";
+
+  // FIX: show Add Expense in group context even on past months
+  const showAddExpense = !isPast || isGroup;
 
   return (
     <div className="space-y-6 max-w-[1600px]">
 
-      {/* ── GREETING BANNER ── */}
-      <div className="bg-gradient-to-r from-blue-800 via-blue-700 to-blue-600 rounded-2xl p-6 md:p-8 relative overflow-hidden card-in shadow-xl shadow-blue-600/20">
+      {/* ── GREETING / GROUP BANNER ── */}
+      <div className={`${bannerClass} rounded-2xl p-6 md:p-8 relative overflow-hidden card-in shadow-xl`}>
         <div className="absolute inset-0 opacity-[0.05]"
           style={{ backgroundImage: "linear-gradient(white 1px,transparent 1px),linear-gradient(90deg,white 1px,transparent 1px)", backgroundSize: "32px 32px" }} />
-        <div className="absolute -right-12 -top-12 w-48 h-48 bg-blue-400/20 rounded-full blur-3xl" />
-        <div className="absolute right-20 bottom-0 w-32 h-32 bg-blue-300/10 rounded-full blur-2xl" />
+        <div className="absolute -right-12 -top-12 w-48 h-48 bg-white/10 rounded-full blur-3xl" />
 
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 relative">
           <div className="flex-1 min-w-0">
-            {/* Greeting line — only for current month */}
-            {!isPast
-              ? <p className="text-blue-200 text-sm font-medium">{greeting} 👋</p>
-              : <p className="text-blue-300 text-xs font-semibold uppercase tracking-widest">Viewing past month</p>
-            }
-            <p className="text-white font-black text-2xl md:text-3xl font-['Sora',sans-serif] leading-tight mt-1">
-              {isPast ? selMonthLabel : (user?.name ?? "Welcome back")}
-            </p>
-            <p className="text-blue-200 text-sm mt-2 leading-relaxed max-w-md">
-              {expLoading || summaryLoading ? "Loading your data…" : (
-                <>
-                  {isPast ? "Total spent: " : "You've spent "}
-                  <strong className="text-white">{fmtPrimary(totalSpentUsd, pref)}</strong>
-                  <span className="text-blue-300 text-xs ml-1">({fmtSecondary(totalSpentUsd, pref)})</span>
-                  {!isPast && budgetLimitUsd > 0 && (
-                    <span className="hidden sm:inline">
-                      {" "}Budget at {budgetRawPct}% —{" "}
-                      {overallColor.status === "safe"    && "you're doing great!"}
-                      {overallColor.status === "warning" && "getting close."}
-                      {overallColor.status === "danger"  && "very close to limit!"}
-                      {overallColor.status === "over"    && "you've exceeded your budget!"}
-                    </span>
+            {isGroup ? (
+              <>
+                <div className="flex items-center gap-2 mb-1">
+                  <Users size={14} className="text-indigo-300" />
+                  <p className="text-indigo-300 text-xs font-bold uppercase tracking-widest">Group View</p>
+                </div>
+                <p className="text-white font-black text-2xl md:text-3xl font-['Sora',sans-serif] leading-tight">
+                  {activeContext.groupName}
+                </p>
+                <div className="mt-3">
+                  <GroupMemberStrip members={groupMembers} />
+                </div>
+                {!expLoading && !summaryLoading && (
+                  <p className="text-indigo-200 text-sm mt-3 leading-relaxed">
+                    {isPast ? "Total spent: " : "Group spent "}
+                    <strong className="text-white">{fmtPrimary(totalSpentUsd, pref)}</strong>
+                    <span className="text-indigo-300 text-xs ml-1">({fmtSecondary(totalSpentUsd, pref)})</span>
+                    {!isPast && budgetLimitUsd > 0 && (
+                      <span className="hidden sm:inline"> · Budget at {budgetRawPct}%</span>
+                    )}
+                  </p>
+                )}
+              </>
+            ) : (
+              <>
+                {!isPast
+                  ? <p className="text-blue-200 text-sm font-medium">{greeting}</p>
+                  : <p className="text-blue-300 text-xs font-semibold uppercase tracking-widest">Viewing past month</p>
+                }
+                <p className="text-white font-black text-2xl md:text-3xl font-['Sora',sans-serif] leading-tight mt-1">
+                  {isPast ? selMonthLabel : (user?.name ?? "Welcome back")}
+                </p>
+                <p className="text-blue-200 text-sm mt-2 leading-relaxed max-w-md">
+                  {expLoading || summaryLoading ? "Loading your data…" : (
+                    <>
+                      {isPast ? "Total spent: " : "You've spent "}
+                      <strong className="text-white">{fmtPrimary(totalSpentUsd, pref)}</strong>
+                      <span className="text-blue-300 text-xs ml-1">({fmtSecondary(totalSpentUsd, pref)})</span>
+                      {!isPast && budgetLimitUsd > 0 && (
+                        <span className="hidden sm:inline">
+                          {" "}Budget at {budgetRawPct}% —{" "}
+                          {overallColor.status === "safe"    && "you're doing great!"}
+                          {overallColor.status === "warning" && "getting close."}
+                          {overallColor.status === "danger"  && "very close to limit!"}
+                          {overallColor.status === "over"    && "you've exceeded your budget!"}
+                        </span>
+                      )}
+                    </>
                   )}
-                </>
-              )}
-            </p>
+                </p>
+              </>
+            )}
           </div>
 
-          {/* Right side: month nav + add button */}
           <div className="flex items-center gap-3 shrink-0">
             <MonthNavigator year={selYear} month={selMonth} onChange={handleMonthChange} />
-            {!isPast && (
+            {/* FIX: always show Add Expense in group context; personal only shows for current month */}
+            {showAddExpense && (
               <Link href="/dashboard/expenses/new"
                 className="flex items-center gap-2 bg-white text-blue-700 hover:bg-blue-50 text-sm font-bold px-5 py-3 rounded-xl transition-all shadow-lg hover:shadow-xl active:scale-95">
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -526,43 +587,38 @@ export default function DashboardPage() {
 
       {/* ── STAT CARDS ── */}
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
-        <StatCard
-          label="Total Spent"
+        <StatCard label="Total Spent"
           value={expLoading || summaryLoading ? "—" : fmtPrimary(totalSpentUsd, pref)}
           subDim={expLoading || summaryLoading ? undefined : fmtSecondary(totalSpentUsd, pref)}
-          sub={selMonthLabel}
-          change={expLoading ? "…" : `${expenses.length} expenses`}
+          sub={selMonthLabel} change={expLoading ? "…" : `${expenses.length} expenses`}
           positive={false} Icon={TrendingDown} iconColor="bg-red-50 text-red-400" accent="bg-red-400" delay={0} />
-        <StatCard
-          label="Monthly Budget"
-          value={budgetLoading ? "—" : fmtPrimary(budgetLimitUsd, pref)}
-          subDim={budgetLoading ? undefined : fmtSecondary(budgetLimitUsd, pref)}
-          sub="Total limit set"
-          change={budgetLoading ? "…" : `${budgetRawPct}% used`}
-          positive={budgetRawPct < 50} Icon={TrendingUp} iconColor="bg-green-50 text-green-500" accent="bg-green-400" delay={60} />
-        <StatCard
-          label="Remaining"
-          value={budgetLoading ? "—" : fmtPrimary(Math.max(budgetLimitUsd - budgetSpentUsd, 0), pref)}
-          subDim={budgetLoading ? undefined : fmtSecondary(Math.max(budgetLimitUsd - budgetSpentUsd, 0), pref)}
-          sub="Budget left"
-          change={budgetLoading ? "…" : budgetLimitUsd > 0 ? `${Math.max(100 - budgetRawPct, 0)}% free` : "No budget set"}
-          positive={budgetRawPct < 80} Icon={PiggyBank} iconColor="bg-blue-50 text-blue-400" accent="bg-blue-400" delay={120} />
-        <StatCard
-          label="Total Expenses"
+        <StatCard label={isGroup ? "Group Budget" : "Monthly Budget"}
+          value={isPast ? "N/A" : budgetLoading ? "—" : fmtPrimary(budgetLimitUsd, pref)}
+          subDim={isPast ? undefined : budgetLoading ? undefined : fmtSecondary(budgetLimitUsd, pref)}
+          sub={isPast ? "No budget history" : "Total limit set"}
+          change={isPast ? "past month" : budgetLoading ? "…" : `${budgetRawPct}% used`}
+          positive={isPast ? true : budgetRawPct < 50} Icon={TrendingUp} iconColor="bg-green-50 text-green-500" accent="bg-green-400" delay={60} />
+        <StatCard label="Remaining"
+          value={isPast ? "N/A" : budgetLoading ? "—" : fmtPrimary(Math.max(budgetLimitUsd - budgetSpentUsd, 0), pref)}
+          subDim={isPast ? undefined : budgetLoading ? undefined : fmtSecondary(Math.max(budgetLimitUsd - budgetSpentUsd, 0), pref)}
+          sub={isPast ? "No budget history" : "Budget left"}
+          change={isPast ? "past month" : budgetLoading ? "…" : budgetLimitUsd > 0 ? `${Math.max(100 - budgetRawPct, 0)}% free` : "No budget set"}
+          positive={isPast ? true : budgetRawPct < 80} Icon={PiggyBank} iconColor="bg-blue-50 text-blue-400" accent="bg-blue-400" delay={120} />
+        <StatCard label={isGroup ? "Group Expenses" : "Total Expenses"}
           value={expLoading ? "—" : `${expenses.length} expenses`}
           sub={selMonthLabel}
-          change={expLoading ? "…" : digitalCount > 0 ? `${digitalCount} via KHQR / App` : "No digital payments"}
-          positive={true} Icon={ScanLine} iconColor="bg-blue-50 text-blue-500" accent="bg-blue-500" delay={180} />
+          change={expLoading ? "…" : isGroup ? `${groupMembers.length} members` : digitalCount > 0 ? `${digitalCount} via KHQR / App` : "No digital payments"}
+          positive={true} Icon={isGroup ? Users : ScanLine} iconColor="bg-blue-50 text-blue-500" accent="bg-blue-500" delay={180} />
       </div>
 
       {/* ── CHARTS ROW ── */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
-
-        {/* Bar chart — click bars to switch month */}
         <div className="xl:col-span-2 bg-white rounded-2xl p-6 border border-blue-100 shadow-sm card-in" style={{ animationDelay: "80ms" }}>
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-blue-400 text-xs font-bold uppercase tracking-widest">Monthly Spending</p>
+              <p className="text-blue-400 text-xs font-bold uppercase tracking-widest">
+                {isGroup ? "Group Spending" : "Monthly Spending"}
+              </p>
               {chartLoading
                 ? <div className="h-9 w-32 bg-blue-50 rounded-xl animate-pulse mt-1" />
                 : <div className="mt-1">
@@ -574,36 +630,45 @@ export default function DashboardPage() {
                   </div>
               }
             </div>
-            {!chartLoading && selectedChartIdx > 0 && (
-              <span className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full shrink-0 ${momDiff > 0 ? "bg-red-50 text-red-500" : "bg-green-50 text-green-600"}`}>
-                {momDiff > 0 ? "↑" : "↓"} {Math.abs(momDiff)}% vs prev month
-              </span>
-            )}
+            <div className="flex items-center gap-2 shrink-0">
+              {/* Year navigator */}
+              <div className="flex items-center gap-1 bg-blue-50 border border-blue-100 rounded-xl px-1 py-1">
+                <button
+                  onClick={() => { setSelYear(y => y - 1); setSelMonth(1); }}
+                  className="w-6 h-6 rounded-lg flex items-center justify-center text-blue-400 hover:text-blue-700 hover:bg-blue-100 transition-all">
+                  <ChevronLeft size={13} strokeWidth={2.5} />
+                </button>
+                <span className="text-blue-700 text-xs font-bold px-1 min-w-[36px] text-center">{selYear}</span>
+                <button
+                  onClick={() => { if (selYear < TODAY.getFullYear()) { setSelYear(y => y + 1); setSelMonth(1); } }}
+                  disabled={selYear >= TODAY.getFullYear()}
+                  className={`w-6 h-6 rounded-lg flex items-center justify-center transition-all
+                    ${selYear >= TODAY.getFullYear() ? "text-blue-200 cursor-not-allowed" : "text-blue-400 hover:text-blue-700 hover:bg-blue-100"}`}>
+                  <ChevronRight size={13} strokeWidth={2.5} />
+                </button>
+              </div>
+              {!chartLoading && (
+                <span className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full ${momDiff > 0 ? "bg-red-50 text-red-500" : "bg-green-50 text-green-600"}`}>
+                  {momDiff > 0 ? "↑" : "↓"} {Math.abs(momDiff)}%
+                </span>
+              )}
+            </div>
           </div>
           {chartLoading
             ? <div className="h-36 bg-blue-50 rounded-xl animate-pulse mt-4" />
-            : <SpendingChart
-                data={chartData}
-                pref={pref}
-                selectedIdx={selectedChartIdx}
-                onSelect={handleBarSelect}
-              />
+            : <SpendingChart data={chartData} pref={pref} selectedIdx={selectedBarIdx} onSelect={handleBarSelect} />
           }
-          {!chartLoading && (
-            <p className="text-blue-200 text-[10px] mt-2 text-center">
-              Click any bar to navigate to that month
-            </p>
-          )}
+          {!chartLoading && <p className="text-blue-200 text-[10px] mt-2 text-center">Click any bar to navigate to that month</p>}
         </div>
 
-        {/* Donut */}
+        {/* ── BY CATEGORY ── */}
         <div className="bg-white rounded-2xl p-6 border border-blue-100 shadow-sm card-in" style={{ animationDelay: "120ms" }}>
           <p className="text-blue-400 text-xs font-bold uppercase tracking-widest mb-4">By Category</p>
           {chartLoading || summaryLoading
             ? <div className="flex items-center justify-center h-[200px]"><div className="w-32 h-32 rounded-full border-8 border-blue-100 animate-pulse" /></div>
             : <DonutChart slices={donutSlices} totalUsd={totalSpentUsd} pref={pref} />
           }
-          <div className="mt-4 space-y-2.5">
+          <div className="mt-4 space-y-2 max-h-[260px] overflow-y-auto pr-1" style={{ scrollbarWidth: "none" }}>
             {chartLoading || summaryLoading
               ? [...Array(5)].map((_, i) => (
                   <div key={i} className="flex items-center gap-2.5 animate-pulse">
@@ -613,18 +678,20 @@ export default function DashboardPage() {
                   </div>
                 ))
               : donutSlices.slice(0, 5).map(d => (
-                  <div key={d.cat} className="flex items-center gap-2.5">
-                    <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: d.color }} />
-                    <span className="text-blue-500 text-xs flex-1 truncate">{d.cat}</span>
-                    <div className="text-right">
-                      <span className="text-blue-400 text-xs">{fmtPrimary(d.totalUsd, pref)}</span>
-                      <span className="text-blue-200 text-[10px] block">{fmtSecondary(d.totalUsd, pref)}</span>
+                    <div key={d.cat} className="flex items-center gap-2.5">
+                      <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: d.color }} />
+                      <span className="text-blue-500 text-xs flex-1 truncate">{d.cat}</span>
+                      <div className="text-right">
+                        <span className="text-blue-400 text-xs">{fmtPrimary(d.totalUsd, pref)}</span>
+                        <span className="text-blue-300 text-[10px] block">{fmtSecondary(d.totalUsd, pref)}</span>
+                      </div>
+                      <span className="text-blue-800 text-xs font-bold w-8 text-right">{d.pct}%</span>
                     </div>
-                    <span className="text-blue-800 text-xs font-bold w-8 text-right">{d.pct}%</span>
-                  </div>
-                ))
+                  ))
             }
-            {donutSlices.length > 5 && <p className="text-blue-200 text-xs pl-5">+{donutSlices.length - 5} more categories</p>}
+            {donutSlices.length > 5 && (
+              <p className="text-blue-200 text-xs pl-2 pt-1">+{donutSlices.length - 5} more categories</p>
+            )}
           </div>
         </div>
       </div>
@@ -632,15 +699,16 @@ export default function DashboardPage() {
       {/* ── TRANSACTIONS + BUDGETS ── */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
 
-        {/* Transactions */}
         <div className="xl:col-span-2 bg-white rounded-2xl p-6 border border-blue-100 shadow-sm card-in" style={{ animationDelay: "160ms" }}>
           <div className="flex items-center justify-between mb-4">
             <div>
               <p className="text-blue-800 font-black text-lg font-['Sora',sans-serif]">
-                {isPast ? "Transactions" : "Recent Transactions"}
+                {isPast ? "Transactions" : isGroup ? "Group Transactions" : "Recent Transactions"}
               </p>
-              {isPast && (
-                <p className="text-blue-300 text-xs mt-0.5">{selMonthLabel}</p>
+              {(isPast || isGroup) && (
+                <p className="text-blue-300 text-xs mt-0.5">
+                  {isPast ? selMonthLabel : activeContext.groupName}
+                </p>
               )}
             </div>
             <Link href="/dashboard/expenses" className="text-blue-500 text-sm font-semibold hover:text-blue-700 transition-colors">View all →</Link>
@@ -665,12 +733,16 @@ export default function DashboardPage() {
             </div>
           ) : filteredTx.length === 0 ? (
             <div className="text-center py-10 text-blue-300">
-              <p className="text-4xl mb-2">🔍</p>
+              <div className="w-12 h-12 rounded-2xl bg-blue-50 flex items-center justify-center mx-auto mb-3">
+                <Search size={22} className="text-blue-300" strokeWidth={1.75} />
+              </div>
               <p className="text-sm">{isPast ? `No transactions in ${selMonthLabel}` : "No transactions here"}</p>
             </div>
           ) : (
             <>
-              {filteredTx.map((e, i) => <TxRow key={e.id} expense={e} delay={i * 40} />)}
+              {filteredTx.map((e, i) => (
+                <TxRow key={e.id} expense={e} delay={i * 40} groupMembers={isGroup ? groupMembers : undefined} />
+              ))}
               {txCount < totalFiltered && (
                 <button onClick={() => setTxCount(txCount + 4)}
                   className="w-full mt-4 py-2.5 text-blue-500 text-sm font-semibold border border-blue-100 rounded-xl hover:bg-blue-50 transition-all">
@@ -681,12 +753,12 @@ export default function DashboardPage() {
           )}
         </div>
 
-        {/* Budget widget */}
         <div className={`bg-white rounded-2xl p-6 border shadow-sm card-in flex flex-col ${overallColor.borderClass}`} style={{ animationDelay: "200ms" }}>
           <div className="flex items-center justify-between mb-5">
             <div>
               <p className="text-blue-800 font-black text-lg font-['Sora',sans-serif]">Budget Progress</p>
               {isPast && <p className="text-blue-300 text-xs mt-0.5">{selMonthLabel}</p>}
+              {isGroup && !isPast && <p className="text-indigo-400 text-xs mt-0.5">{activeContext.groupName}</p>}
             </div>
             <Link href="/dashboard/budgets" className="text-blue-500 text-sm font-semibold hover:text-blue-700 transition-colors">Manage →</Link>
           </div>
@@ -697,13 +769,22 @@ export default function DashboardPage() {
                 <div key={i} className="space-y-2 animate-pulse">
                   <div className="flex justify-between"><div className="h-4 bg-blue-100 rounded w-28" /><div className="h-4 bg-blue-50 rounded w-16" /></div>
                   <div className="h-2 bg-blue-50 rounded-full w-full" />
-                  <div className="h-3 bg-blue-50 rounded w-32" />
                 </div>
               ))}
             </div>
+          ) : isPast ? (
+            <div className="flex-1 flex flex-col items-center justify-center py-6 text-center">
+              <div className="w-12 h-12 rounded-2xl bg-blue-50 flex items-center justify-center mx-auto mb-3">
+                <Calendar size={22} className="text-blue-300" strokeWidth={1.75} />
+              </div>
+              <p className="text-blue-400 text-sm font-semibold">No budget history</p>
+              <p className="text-blue-300 text-xs mt-1 max-w-[180px]">Budget tracking is only available for the current period</p>
+            </div>
           ) : activeBudgetStatuses.length === 0 ? (
             <div className="flex-1 flex flex-col items-center justify-center py-6 text-center">
-              <p className="text-3xl mb-2">💰</p>
+              <div className="w-12 h-12 rounded-2xl bg-blue-50 flex items-center justify-center mx-auto mb-3">
+                <Wallet size={22} className="text-blue-300" strokeWidth={1.75} />
+              </div>
               <p className="text-blue-400 text-sm font-semibold">No budgets set yet</p>
               <Link href="/dashboard/budgets" className="mt-3 text-blue-600 text-xs font-bold hover:underline">
                 Create your first budget →
@@ -711,14 +792,21 @@ export default function DashboardPage() {
             </div>
           ) : (
             <div className="space-y-5 flex-1">
-              {activeBudgetStatuses.slice(0, 6).map(s => (
-                <BudgetBar key={s.id} status={s} pref={pref} />
-              ))}
+              {/* FIX: show all budget statuses, sorted monthly first then weekly then daily */}
+              {[...activeBudgetStatuses]
+                .sort((a, b) => {
+                  const order = { MONTHLY: 0, WEEKLY: 1, DAILY: 2 };
+                  return order[a.period] - order[b.period];
+                })
+                .slice(0, 6)
+                .map(s => (
+                  <BudgetBar key={s.id} status={s} pref={pref} />
+                ))
+              }
             </div>
           )}
 
-          {/* Overall progress bar */}
-          {!budgetLoading && budgetLimitUsd > 0 && (
+          {!budgetLoading && !isPast && budgetLimitUsd > 0 && (
             <div className="mt-5 pt-5 border-t border-blue-50">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-blue-500 text-sm font-semibold">Overall Budget</span>
@@ -741,17 +829,37 @@ export default function DashboardPage() {
             </div>
           )}
 
-          <Link href="/dashboard/categories"
-            className="mt-5 flex items-center gap-3 bg-blue-600 hover:bg-blue-700 rounded-xl p-4 transition-all hover:shadow-lg hover:shadow-blue-600/20 group">
-            <div className="w-10 h-10 rounded-xl bg-blue-500 flex items-center justify-center text-xl shrink-0">🏷️</div>
-            <div className="flex-1">
-              <p className="text-white text-sm font-bold">Manage Categories</p>
-              <p className="text-blue-300 text-xs mt-0.5">Organize your spending</p>
-            </div>
-            <svg className="w-5 h-5 text-blue-300 group-hover:translate-x-0.5 transition-transform shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-            </svg>
-          </Link>
+          {!isGroup && (
+            <Link href="/dashboard/categories"
+              className="mt-5 flex items-center gap-3 bg-blue-600 hover:bg-blue-700 rounded-xl p-4 transition-all hover:shadow-lg hover:shadow-blue-600/20 group">
+              <div className="w-10 h-10 rounded-xl bg-blue-500 flex items-center justify-center shrink-0">
+                <Tag size={18} className="text-white" strokeWidth={2} />
+              </div>
+              <div className="flex-1">
+                <p className="text-white text-sm font-bold">Manage Categories</p>
+                <p className="text-blue-300 text-xs mt-0.5">Organize your spending</p>
+              </div>
+              <svg className="w-5 h-5 text-blue-300 group-hover:translate-x-0.5 transition-transform shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+              </svg>
+            </Link>
+          )}
+
+          {isGroup && (
+            <Link href="/dashboard/groups"
+              className="mt-5 flex items-center gap-3 bg-indigo-600 hover:bg-indigo-700 rounded-xl p-4 transition-all hover:shadow-lg hover:shadow-indigo-600/20 group">
+              <div className="w-10 h-10 rounded-xl bg-indigo-500 flex items-center justify-center shrink-0">
+                <Users size={18} className="text-white" strokeWidth={2} />
+              </div>
+              <div className="flex-1">
+                <p className="text-white text-sm font-bold">Manage Group</p>
+                <p className="text-indigo-300 text-xs mt-0.5">Members · Invite · Settings</p>
+              </div>
+              <svg className="w-5 h-5 text-indigo-300 group-hover:translate-x-0.5 transition-transform shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+              </svg>
+            </Link>
+          )}
         </div>
       </div>
 

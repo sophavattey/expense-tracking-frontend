@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { User, Settings, AlertTriangle } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
 /* ─── Avatar ─────────────────────────────────────────────────────── */
@@ -33,7 +34,7 @@ function InfoRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-/* ─── Currency row — interactive ─────────────────────────────────── */
+/* ─── Currency row ───────────────────────────────────────────────── */
 function CurrencyRow({ current, onChange }: {
   current: "USD" | "KHR";
   onChange: (c: "USD" | "KHR") => Promise<void>;
@@ -65,7 +66,7 @@ function CurrencyRow({ current, onChange }: {
                   ? "bg-blue-600 text-white shadow-sm"
                   : "text-blue-400 hover:text-blue-600"
               }`}>
-              {c === "USD" ? "🇺🇸 USD" : "🇰🇭 KHR"}
+              {c === "USD" ? "USD $" : "KHR ៛"}
             </button>
           ))}
         </div>
@@ -75,11 +76,19 @@ function CurrencyRow({ current, onChange }: {
 }
 
 /* ─── Section card ───────────────────────────────────────────────── */
-function Section({ title, icon, children }: { title: string; icon: string; children: React.ReactNode }) {
+function Section({ title, Icon, children, iconClass = "text-blue-500", bgClass = "bg-blue-50" }: {
+  title: string;
+  Icon: React.ElementType;
+  children: React.ReactNode;
+  iconClass?: string;
+  bgClass?: string;
+}) {
   return (
     <div className="bg-white rounded-2xl border border-blue-100 shadow-sm overflow-hidden">
       <div className="px-5 py-4 border-b border-blue-50 flex items-center gap-2.5">
-        <span className="text-xl">{icon}</span>
+        <div className={`w-8 h-8 rounded-xl ${bgClass} flex items-center justify-center shrink-0`}>
+          <Icon size={16} className={iconClass} strokeWidth={2} />
+        </div>
         <h2 className="text-blue-800 font-black text-base font-['Sora',sans-serif]">{title}</h2>
       </div>
       <div className="px-5 py-1">{children}</div>
@@ -101,63 +110,40 @@ export default function SettingsPage() {
     );
   }
 
-  const joinDate      = "February 2026";
-  const providerLabel = user.provider === "GOOGLE" ? "Google OAuth2" : "Email & Password";
-  const providerIcon  = user.provider === "GOOGLE" ? "🔵" : "✉️";
+  const joinDate = "February 2026";
 
   return (
     <div className="max-w-2xl mx-auto space-y-4">
 
       {/* ── Profile header ── */}
-      <div className="bg-gradient-to-r from-blue-700 to-blue-500 rounded-2xl p-5 flex items-center gap-4 shadow-lg shadow-blue-600/20">
+      <div className="bg-linear-to-r from-blue-700 to-blue-500 rounded-2xl p-5 flex items-center gap-4 shadow-lg shadow-blue-600/20">
         <Avatar user={user} size="md" />
         <div className="min-w-0">
           <p className="text-white font-black text-xl font-['Sora',sans-serif] leading-tight truncate">{user.name}</p>
           <p className="text-blue-200 text-sm truncate">{user.email}</p>
-          <div className="flex items-center gap-2 mt-1.5">
-            <span className="bg-white/15 border border-white/20 text-blue-100 text-[10px] font-bold px-2 py-0.5 rounded-lg">
-              {user.role}
-            </span>
-            <span className="bg-white/15 border border-white/20 text-blue-100 text-[10px] font-bold px-2 py-0.5 rounded-lg">
-              {providerIcon} {providerLabel}
-            </span>
-          </div>
         </div>
       </div>
 
       {/* ── Account info ── */}
-      <Section title="Account Information" icon="👤">
+      <Section title="Account Information" Icon={User} iconClass="text-blue-500" bgClass="bg-blue-50">
         <InfoRow label="Full Name"    value={user.name} />
         <InfoRow label="Email"        value={user.email} />
-        <InfoRow label="Account ID"   value={`${user.id.slice(0, 8)}…`} />
-        <InfoRow label="Role"         value={user.role} />
-        <InfoRow label="Sign-in via"  value={providerLabel} />
         <InfoRow label="Member since" value={joinDate} />
       </Section>
 
       {/* ── Preferences ── */}
-      <Section title="Preferences" icon="⚙️">
-        {/* ✅ Interactive currency switcher — calls API on click, updates user state instantly */}
+      <Section title="Preferences" Icon={Settings} iconClass="text-indigo-500" bgClass="bg-indigo-50">
         <CurrencyRow current={user.preferredCurrency} onChange={updateCurrency} />
-        <InfoRow label="Language"      value="English" />
-        <InfoRow label="Timezone"      value="Asia/Phnom_Penh (UTC+7)" />
-        <InfoRow label="Notifications" value="Enabled" />
-      </Section>
-
-      {/* ── Security ── */}
-      <Section title="Security" icon="🔒">
-        {user.provider === "LOCAL" && (
-          <InfoRow label="Password" value="••••••••  (change coming soon)" />
-        )}
-        <InfoRow label="Session tokens" value="HTTP-only cookies" />
-        <InfoRow label="Token refresh"  value="Automatic (7-day rotation)" />
-        <InfoRow label="2FA"            value="Coming soon" />
+        <InfoRow label="Language" value="English" />
+        <InfoRow label="Timezone" value="Asia/Phnom_Penh (UTC+7)" />
       </Section>
 
       {/* ── Danger zone ── */}
       <div className="bg-white rounded-2xl border border-red-100 shadow-sm overflow-hidden">
         <div className="px-5 py-4 border-b border-red-50 flex items-center gap-2.5">
-          <span className="text-xl">⚠️</span>
+          <div className="w-8 h-8 rounded-xl bg-red-50 flex items-center justify-center shrink-0">
+            <AlertTriangle size={16} className="text-red-400" strokeWidth={2} />
+          </div>
           <h2 className="text-red-600 font-black text-base font-['Sora',sans-serif]">Account Actions</h2>
         </div>
         <div className="px-5 py-4 space-y-3">

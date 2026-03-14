@@ -1,14 +1,15 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState } from "react";
 import {
   Users, Plus, LogIn, Copy, Check, RefreshCw,
   Crown, UserMinus, Trash2, ChevronRight, X, Shield,
+  ArrowRightLeft, Wallet, BarChart3, AlertTriangle,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useGroup } from "@/contexts/GroupContext";
 import { useGroups } from "@/hooks/useGroups";
-import type { Group, GroupMember } from "@/types/group.types";
+import type { Group } from "@/types/group.types";
 
 /* ─── helpers ────────────────────────────────────────────────────── */
 function fmtDate(iso: string) {
@@ -40,9 +41,7 @@ function CopyButton({ text, className = "" }: { text: string; className?: string
   return (
     <button onClick={copy}
       className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-        copied
-          ? "bg-green-100 text-green-600"
-          : "bg-indigo-100 text-indigo-600 hover:bg-indigo-200"
+        copied ? "bg-green-100 text-green-600" : "bg-indigo-100 text-indigo-600 hover:bg-indigo-200"
       } ${className}`}>
       {copied ? <Check size={12} strokeWidth={2.5} /> : <Copy size={12} strokeWidth={2.5} />}
       {copied ? "Copied!" : "Copy"}
@@ -85,21 +84,16 @@ function CreateGroupModal({ onClose, onCreate }: {
   onClose: () => void;
   onCreate: (name: string) => Promise<Group>;
 }) {
-  const [name,    setName]    = useState("");
-  const [saving,  setSaving]  = useState(false);
-  const [error,   setError]   = useState<string | null>(null);
+  const [name,   setName]   = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error,  setError]  = useState<string | null>(null);
 
   const handle = async () => {
     if (!name.trim()) { setError("Group name is required"); return; }
     setSaving(true); setError(null);
-    try {
-      await onCreate(name.trim());
-      onClose();
-    } catch (e: any) {
-      setError(e.message || "Failed to create group");
-    } finally {
-      setSaving(false);
-    }
+    try { await onCreate(name.trim()); onClose(); }
+    catch (e: any) { setError(e.message || "Failed to create group"); }
+    finally { setSaving(false); }
   };
 
   return (
@@ -108,7 +102,6 @@ function CreateGroupModal({ onClose, onCreate }: {
       <div className="relative bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl w-full sm:max-w-md p-6"
         style={{ animation: "slideUp 0.25s ease both" }}>
         <div className="w-10 h-1 bg-blue-100 rounded-full mx-auto mb-5 sm:hidden" />
-
         <div className="flex items-center gap-3 mb-5">
           <div className="w-11 h-11 rounded-2xl bg-indigo-600 flex items-center justify-center shrink-0">
             <Users size={20} className="text-white" />
@@ -118,31 +111,18 @@ function CreateGroupModal({ onClose, onCreate }: {
             <p className="text-blue-400 text-xs mt-0.5">Start a shared budget with others</p>
           </div>
         </div>
-
         {error && (
           <div className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-600 text-sm px-4 py-3 rounded-xl mb-4">
-            <X size={14} className="shrink-0" />
-            {error}
+            <X size={14} className="shrink-0" />{error}
           </div>
         )}
-
-        <label className="block text-blue-600 text-[10px] font-bold uppercase tracking-widest mb-2">
-          Group Name
-        </label>
-        <input
-          type="text"
-          value={name}
-          onChange={e => setName(e.target.value)}
+        <label className="block text-blue-600 text-[10px] font-bold uppercase tracking-widest mb-2">Group Name</label>
+        <input type="text" value={name} onChange={e => setName(e.target.value)}
           onKeyDown={e => e.key === "Enter" && handle()}
-          placeholder="e.g. Our Family, Me & Dara"
-          maxLength={100}
+          placeholder="e.g. Our Family, Me & Dara" maxLength={100}
           className="w-full px-4 py-3.5 rounded-xl border border-blue-100 bg-blue-50/50 text-blue-800 font-semibold
-            focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all placeholder:text-blue-200"
-        />
-        <p className="text-blue-200 text-xs mt-1.5">
-          You'll become the owner. Share the invite code to add members.
-        </p>
-
+            focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all placeholder:text-blue-200" />
+        <p className="text-blue-200 text-xs mt-1.5">You'll become the owner. Share the invite code to add members.</p>
         <div className="flex gap-3 mt-5">
           <button onClick={onClose}
             className="flex-1 py-3.5 rounded-xl border-2 border-blue-100 text-blue-500 font-bold text-sm hover:bg-blue-50 transition-all">
@@ -173,14 +153,9 @@ function JoinGroupModal({ onClose, onJoin }: {
   const handle = async () => {
     if (code.trim().length < 6) { setError("Enter the full invite code"); return; }
     setSaving(true); setError(null);
-    try {
-      await onJoin(code.trim().toUpperCase());
-      onClose();
-    } catch (e: any) {
-      setError(e.message || "Invalid code or group not found");
-    } finally {
-      setSaving(false);
-    }
+    try { await onJoin(code.trim().toUpperCase()); onClose(); }
+    catch (e: any) { setError(e.message || "Invalid code or group not found"); }
+    finally { setSaving(false); }
   };
 
   return (
@@ -189,7 +164,6 @@ function JoinGroupModal({ onClose, onJoin }: {
       <div className="relative bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl w-full sm:max-w-md p-6"
         style={{ animation: "slideUp 0.25s ease both" }}>
         <div className="w-10 h-1 bg-blue-100 rounded-full mx-auto mb-5 sm:hidden" />
-
         <div className="flex items-center gap-3 mb-5">
           <div className="w-11 h-11 rounded-2xl bg-blue-600 flex items-center justify-center shrink-0">
             <LogIn size={20} className="text-white" />
@@ -199,29 +173,18 @@ function JoinGroupModal({ onClose, onJoin }: {
             <p className="text-blue-400 text-xs mt-0.5">Enter the invite code from your group owner</p>
           </div>
         </div>
-
         {error && (
           <div className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-600 text-sm px-4 py-3 rounded-xl mb-4">
-            <X size={14} className="shrink-0" />
-            {error}
+            <X size={14} className="shrink-0" />{error}
           </div>
         )}
-
-        <label className="block text-blue-600 text-[10px] font-bold uppercase tracking-widest mb-2">
-          Invite Code
-        </label>
-        <input
-          type="text"
-          value={code}
-          onChange={e => setCode(e.target.value.toUpperCase())}
+        <label className="block text-blue-600 text-[10px] font-bold uppercase tracking-widest mb-2">Invite Code</label>
+        <input type="text" value={code} onChange={e => setCode(e.target.value.toUpperCase())}
           onKeyDown={e => e.key === "Enter" && handle()}
-          placeholder="e.g. FINXK7Q2"
-          maxLength={12}
+          placeholder="e.g. FINXK7Q2" maxLength={12}
           className="w-full px-4 py-3.5 rounded-xl border border-blue-100 bg-blue-50/50 text-blue-800 font-black
             text-center text-xl tracking-[0.3em] focus:outline-none focus:ring-2 focus:ring-blue-500
-            focus:border-transparent transition-all placeholder:text-blue-200 placeholder:text-base placeholder:tracking-normal placeholder:font-semibold"
-        />
-
+            focus:border-transparent transition-all placeholder:text-blue-200 placeholder:text-base placeholder:tracking-normal placeholder:font-semibold" />
         <div className="flex gap-3 mt-5">
           <button onClick={onClose}
             className="flex-1 py-3.5 rounded-xl border-2 border-blue-100 text-blue-500 font-bold text-sm hover:bg-blue-50 transition-all">
@@ -242,25 +205,21 @@ function JoinGroupModal({ onClose, onJoin }: {
    GROUP DETAIL PANEL
 ═══════════════════════════════════════════════════════════════════ */
 function GroupDetailPanel({ group, onBack, onUpdate }: {
-  group: Group;
-  onBack: () => void;
-  onUpdate: () => void;
+  group: Group; onBack: () => void; onUpdate: () => void;
 }) {
   const { user }          = useAuth();
   const { switchToGroup } = useGroup();
   const { leaveGroup, removeMember, dissolveGroup, regenerateInvite } = useGroups();
 
   const isOwner = group.ownerId === user?.id;
-  const myMembership = group.members.find(m => m.userId === user?.id);
 
   const [confirm, setConfirm] = useState<{
     type: "leave" | "dissolve" | "remove";
-    targetId?: string;
-    targetName?: string;
+    targetId?: string; targetName?: string;
   } | null>(null);
-  const [confirming,    setConfirming]    = useState(false);
-  const [regenerating,  setRegenerating]  = useState(false);
-  const [regenSuccess,  setRegenSuccess]  = useState(false);
+  const [confirming,   setConfirming]   = useState(false);
+  const [regenerating, setRegenerating] = useState(false);
+  const [regenSuccess, setRegenSuccess] = useState(false);
 
   const handleConfirm = async () => {
     if (!confirm) return;
@@ -269,11 +228,10 @@ function GroupDetailPanel({ group, onBack, onUpdate }: {
       if (confirm.type === "leave")    { await leaveGroup(group.id); onBack(); }
       if (confirm.type === "dissolve") { await dissolveGroup(group.id); onBack(); }
       if (confirm.type === "remove" && confirm.targetId) {
-        await removeMember(group.id, confirm.targetId);
-        onUpdate();
+        await removeMember(group.id, confirm.targetId); onUpdate();
       }
       setConfirm(null);
-    } catch { /* error handled in hook */ }
+    } catch { /* handled in hook */ }
     finally { setConfirming(false); }
   };
 
@@ -284,14 +242,11 @@ function GroupDetailPanel({ group, onBack, onUpdate }: {
       setRegenSuccess(true);
       setTimeout(() => setRegenSuccess(false), 2500);
       onUpdate();
-    } finally {
-      setRegenerating(false);
-    }
+    } finally { setRegenerating(false); }
   };
 
   const inviteLink = typeof window !== "undefined"
-    ? `${window.location.origin}/join?code=${group.inviteCode}`
-    : "";
+    ? `${window.location.origin}/join?code=${group.inviteCode}` : "";
 
   return (
     <>
@@ -311,11 +266,13 @@ function GroupDetailPanel({ group, onBack, onUpdate }: {
           </div>
           <button onClick={() => switchToGroup(group)}
             className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all hover:shadow-lg hover:shadow-indigo-600/25 active:scale-95">
-            Switch to this group
+            <ArrowRightLeft size={13} strokeWidth={2.5} />
+            <span className="hidden sm:inline">Switch to this group</span>
+            <span className="sm:hidden">Switch</span>
           </button>
         </div>
 
-        {/* Invite code card */}
+        {/* Invite code card — owner only */}
         {isOwner && (
           <div className={`rounded-2xl p-5 relative overflow-hidden shadow-lg ${
             group.inviteCodeExpired
@@ -328,8 +285,9 @@ function GroupDetailPanel({ group, onBack, onUpdate }: {
               <div className="flex items-center justify-between mb-2">
                 <p className="text-indigo-200 text-[10px] font-bold uppercase tracking-widest">Invite Code</p>
                 {group.inviteCodeExpired ? (
-                  <span className="bg-red-400/30 text-red-100 text-[10px] font-bold px-2 py-0.5 rounded-full">
-                    ⚠ Expired
+                  <span className="flex items-center gap-1 bg-red-400/30 text-red-100 text-[10px] font-bold px-2 py-0.5 rounded-full">
+                    <AlertTriangle size={10} strokeWidth={2.5} />
+                    Expired
                   </span>
                 ) : (
                   <span className="bg-indigo-500/40 text-indigo-200 text-[10px] font-semibold px-2 py-0.5 rounded-full">
@@ -342,30 +300,22 @@ function GroupDetailPanel({ group, onBack, onUpdate }: {
                 <span className="text-white font-black text-3xl tracking-[0.25em] font-['Sora',sans-serif]">
                   {group.inviteCode}
                 </span>
-                {!group.inviteCodeExpired && (
-                  <CopyButton text={group.inviteCode} className="bg-white/20! text-white! hover:bg-white/30!" />
-                )}
+                {!group.inviteCodeExpired && <CopyButton text={group.inviteCode} />}
               </div>
 
               {group.inviteCodeExpired ? (
-                <p className="text-red-200 text-xs mb-3">
-                  This code has expired. Generate a new one below.
-                </p>
+                <p className="text-red-200 text-xs mb-3">This code has expired. Generate a new one below.</p>
               ) : (
-                <p className="text-indigo-200 text-xs mb-3">
-                  Share this code or the link below with anyone you want to invite.
-                </p>
+                <p className="text-indigo-200 text-xs mb-3">Share this code or the link below with anyone you want to invite.</p>
               )}
 
-              {/* Invite link — only show when not expired */}
               {!group.inviteCodeExpired && (
                 <div className="flex items-center gap-2 bg-indigo-800/40 rounded-xl px-3 py-2.5 mb-3">
                   <span className="text-indigo-200 text-[11px] truncate flex-1">{inviteLink}</span>
-                  <CopyButton text={inviteLink} className="bg-white/15! text-white! hover:bg-white/25! shrink-0" />
+                  <CopyButton text={inviteLink} className="shrink-0" />
                 </div>
               )}
 
-              {/* Regenerate */}
               <button onClick={handleRegenerate} disabled={regenerating}
                 className="flex items-center gap-1.5 text-indigo-300 hover:text-white text-xs font-semibold transition-colors disabled:opacity-50">
                 <RefreshCw size={12} className={regenerating ? "animate-spin" : ""} />
@@ -375,7 +325,7 @@ function GroupDetailPanel({ group, onBack, onUpdate }: {
           </div>
         )}
 
-        {/* Non-owner: read-only invite code display */}
+        {/* Non-owner info */}
         {!isOwner && (
           <div className="bg-indigo-50 border border-indigo-100 rounded-2xl p-4 flex items-center gap-3">
             <Shield size={18} className="text-indigo-400 shrink-0" />
@@ -393,10 +343,9 @@ function GroupDetailPanel({ group, onBack, onUpdate }: {
               {group.members.length} / 10
             </span>
           </div>
-
           <div className="divide-y divide-blue-50">
             {group.members.map(member => {
-              const isMe        = member.userId === user?.id;
+              const isMe          = member.userId === user?.id;
               const isMemberOwner = member.role === "OWNER";
               return (
                 <div key={member.id}
@@ -411,7 +360,6 @@ function GroupDetailPanel({ group, onBack, onUpdate }: {
                     </div>
                     <p className="text-blue-400 text-xs truncate">{member.email}</p>
                   </div>
-                  {/* Role badge */}
                   <div className={`flex items-center gap-1 px-2.5 py-1 rounded-xl text-[10px] font-bold ${
                     isMemberOwner
                       ? "bg-amber-50 text-amber-600 border border-amber-200"
@@ -419,7 +367,6 @@ function GroupDetailPanel({ group, onBack, onUpdate }: {
                     {isMemberOwner && <Crown size={10} strokeWidth={2.5} />}
                     {member.role}
                   </div>
-                  {/* Remove button — owner can remove non-owner members */}
                   {isOwner && !isMe && !isMemberOwner && (
                     <button
                       onClick={() => setConfirm({ type: "remove", targetId: member.userId, targetName: member.name })}
@@ -469,11 +416,9 @@ function GroupDetailPanel({ group, onBack, onUpdate }: {
         </div>
       </div>
 
-      {/* Confirm dialog */}
       {confirm && (
         <ConfirmDialog
-          danger
-          loading={confirming}
+          danger loading={confirming}
           onClose={() => setConfirm(null)}
           onConfirm={handleConfirm}
           title={
@@ -489,9 +434,7 @@ function GroupDetailPanel({ group, onBack, onUpdate }: {
               : `${confirm.targetName} will be removed from "${group.name}" and lose access to shared budgets.`
           }
           confirmLabel={
-            confirm.type === "leave"    ? "Leave"    :
-            confirm.type === "dissolve" ? "Dissolve" :
-            "Remove"
+            confirm.type === "leave" ? "Leave" : confirm.type === "dissolve" ? "Dissolve" : "Remove"
           }
         />
       )}
@@ -506,7 +449,7 @@ function GroupCard({ group, isActive, onClick }: {
   group: Group; isActive: boolean; onClick: () => void;
 }) {
   const { user } = useAuth();
-  const isOwner = group.ownerId === user?.id;
+  const isOwner  = group.ownerId === user?.id;
 
   return (
     <div onClick={onClick}
@@ -515,10 +458,9 @@ function GroupCard({ group, isActive, onClick }: {
       style={{ animation: "slideUp 0.3s ease both" }}>
       <div className="p-5">
         <div className="flex items-start justify-between gap-3 mb-4">
-          {/* Group icon */}
-          <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-xl shrink-0 shadow-sm
+          <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 shadow-sm
             ${isActive ? "bg-indigo-600" : "bg-indigo-100"}`}>
-            {isActive ? "👥" : "👥"}
+            <Users size={22} className={isActive ? "text-white" : "text-indigo-500"} strokeWidth={2} />
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-blue-800 font-black text-base font-['Sora',sans-serif] truncate">{group.name}</p>
@@ -554,8 +496,9 @@ function GroupCard({ group, isActive, onClick }: {
       </div>
 
       {isActive && (
-        <div className="px-5 py-2.5 bg-indigo-50 border-t border-indigo-100 rounded-b-2xl">
-          <p className="text-indigo-600 text-[11px] font-bold">✓ Currently active context</p>
+        <div className="px-5 py-2.5 bg-indigo-50 border-t border-indigo-100 rounded-b-2xl flex items-center gap-2">
+          <Check size={12} className="text-indigo-500" strokeWidth={2.5} />
+          <p className="text-indigo-600 text-[11px] font-bold">Currently active context</p>
         </div>
       )}
     </div>
@@ -569,15 +512,13 @@ export default function GroupsPage() {
   const { activeContext } = useGroup();
   const { groups, loading, error, createGroup, joinGroup, refetch } = useGroups();
 
-  const [selectedGroup,  setSelectedGroup]  = useState<Group | null>(null);
-  const [showCreate,     setShowCreate]     = useState(false);
-  const [showJoin,       setShowJoin]       = useState(false);
+  const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
+  const [showCreate,    setShowCreate]    = useState(false);
+  const [showJoin,      setShowJoin]      = useState(false);
 
-  // After an update in the detail panel, re-fetch and refresh selected group
   const handleUpdate = async () => {
     await refetch();
     if (selectedGroup) {
-      // re-select updated version
       const updated = groups.find(g => g.id === selectedGroup.id);
       if (updated) setSelectedGroup(updated);
     }
@@ -589,7 +530,8 @@ export default function GroupsPage() {
         @keyframes slideUp { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:translateY(0); } }
       `}</style>
 
-      <div className="space-y-6 max-w-3xl" style={{ animation: "slideUp 0.3s ease both" }}>
+      {/* Full-width layout matching other pages — no max-w constraint */}
+      <div className="w-full space-y-5" style={{ animation: "slideUp 0.3s ease both" }}>
 
         {/* ── Header ── */}
         {!selectedGroup && (
@@ -621,27 +563,20 @@ export default function GroupsPage() {
           </div>
         )}
 
-        {/* ── Detail panel ── */}
+        {/* ── Detail or list ── */}
         {selectedGroup ? (
-          <GroupDetailPanel
-            group={selectedGroup}
-            onBack={() => setSelectedGroup(null)}
-            onUpdate={handleUpdate}
-          />
+          <GroupDetailPanel group={selectedGroup} onBack={() => setSelectedGroup(null)} onUpdate={handleUpdate} />
         ) : (
           <>
-            {/* ── Error ── */}
             {error && (
               <div className="bg-red-50 border border-red-200 text-red-600 text-sm px-4 py-3 rounded-xl flex items-center gap-2">
-                <X size={14} className="shrink-0" />
-                {error}
+                <X size={14} className="shrink-0" />{error}
               </div>
             )}
 
-            {/* ── Loading ── */}
             {loading ? (
-              <div className="grid gap-4 sm:grid-cols-2">
-                {[...Array(2)].map((_, i) => (
+              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                {[...Array(3)].map((_, i) => (
                   <div key={i} className="bg-white rounded-2xl border border-blue-100 p-5 animate-pulse">
                     <div className="flex items-center gap-3 mb-4">
                       <div className="w-12 h-12 rounded-2xl bg-blue-100" />
@@ -651,20 +586,17 @@ export default function GroupsPage() {
                       </div>
                     </div>
                     <div className="flex gap-1 mb-4">
-                      {[...Array(3)].map((_, j) => (
-                        <div key={j} className="w-8 h-8 rounded-full bg-blue-100" />
-                      ))}
+                      {[...Array(3)].map((_, j) => <div key={j} className="w-8 h-8 rounded-full bg-blue-100" />)}
                     </div>
                     <div className="h-3 bg-blue-50 rounded w-24" />
                   </div>
                 ))}
               </div>
             ) : groups.length === 0 ? (
-              /* ── Empty state ── */
-              <div className="bg-white rounded-2xl border border-blue-100 shadow-sm p-12 text-center"
+              <div className="bg-white rounded-2xl border border-blue-100 shadow-sm py-20 px-6 text-center"
                 style={{ animation: "slideUp 0.4s ease both" }}>
-                <div className="w-20 h-20 rounded-3xl bg-indigo-50 flex items-center justify-center text-4xl mx-auto mb-5">
-                  👥
+                <div className="w-20 h-20 rounded-3xl bg-indigo-50 flex items-center justify-center mx-auto mb-5">
+                  <Users size={36} className="text-indigo-400" strokeWidth={1.5} />
                 </div>
                 <h2 className="text-blue-800 font-black text-xl font-['Sora',sans-serif]">No groups yet</h2>
                 <p className="text-blue-400 text-sm mt-2 max-w-xs mx-auto leading-relaxed">
@@ -684,35 +616,33 @@ export default function GroupsPage() {
                 </div>
               </div>
             ) : (
-              /* ── Group cards grid ── */
-              <div className="grid gap-4 sm:grid-cols-2">
+              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
                 {groups.map(g => (
-                  <GroupCard
-                    key={g.id}
-                    group={g}
+                  <GroupCard key={g.id} group={g}
                     isActive={activeContext.groupId === g.id}
-                    onClick={() => setSelectedGroup(g)}
-                  />
+                    onClick={() => setSelectedGroup(g)} />
                 ))}
               </div>
             )}
 
-            {/* ── How it works — shown when at least 1 group exists ── */}
+            {/* How it works */}
             {!loading && groups.length > 0 && (
               <div className="bg-indigo-50 border border-indigo-100 rounded-2xl p-5"
                 style={{ animation: "slideUp 0.5s ease both" }}>
-                <p className="text-indigo-700 text-xs font-bold uppercase tracking-widest mb-3">How it works</p>
+                <p className="text-indigo-700 text-xs font-bold uppercase tracking-widest mb-4">How it works</p>
                 <div className="grid sm:grid-cols-3 gap-4">
                   {[
-                    { icon: "👥", title: "Switch context", desc: "Use the switcher in the sidebar to view group or personal finances" },
-                    { icon: "💰", title: "Shared budgets", desc: "Owners set category limits. Everyone's expenses count toward the same budget" },
-                    { icon: "📊", title: "Live tracking", desc: "When any member adds an expense, the group budget updates for everyone" },
-                  ].map(item => (
-                    <div key={item.title} className="flex gap-3">
-                      <span className="text-2xl shrink-0">{item.icon}</span>
+                    { Icon: ArrowRightLeft, title: "Switch context",  desc: "Use the switcher in the sidebar to view group or personal finances" },
+                    { Icon: Wallet,         title: "Shared budgets",  desc: "Owners set category limits. Everyone's expenses count toward the same budget" },
+                    { Icon: BarChart3,      title: "Live tracking",   desc: "When any member adds an expense, the group budget updates for everyone" },
+                  ].map(({ Icon, title, desc }) => (
+                    <div key={title} className="flex gap-3">
+                      <div className="w-8 h-8 rounded-xl bg-indigo-100 flex items-center justify-center shrink-0 mt-0.5">
+                        <Icon size={15} className="text-indigo-600" strokeWidth={2} />
+                      </div>
                       <div>
-                        <p className="text-indigo-800 text-xs font-bold">{item.title}</p>
-                        <p className="text-indigo-500 text-xs mt-0.5 leading-relaxed">{item.desc}</p>
+                        <p className="text-indigo-800 text-xs font-bold">{title}</p>
+                        <p className="text-indigo-500 text-xs mt-0.5 leading-relaxed">{desc}</p>
                       </div>
                     </div>
                   ))}
@@ -723,19 +653,8 @@ export default function GroupsPage() {
         )}
       </div>
 
-      {/* ── Modals ── */}
-      {showCreate && (
-        <CreateGroupModal
-          onClose={() => setShowCreate(false)}
-          onCreate={createGroup}
-        />
-      )}
-      {showJoin && (
-        <JoinGroupModal
-          onClose={() => setShowJoin(false)}
-          onJoin={joinGroup}
-        />
-      )}
+      {showCreate && <CreateGroupModal onClose={() => setShowCreate(false)} onCreate={createGroup} />}
+      {showJoin   && <JoinGroupModal   onClose={() => setShowJoin(false)}   onJoin={joinGroup}    />}
     </>
   );
 }

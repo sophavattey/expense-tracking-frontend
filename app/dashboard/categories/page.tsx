@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Tag, Sparkles, LayoutGrid, Plus, AlertTriangle } from "lucide-react";
 import { useCategories } from "@/hooks/useCategories";
 import type { Category, CategoryRequest } from "@/types/category.types";
 
@@ -43,6 +44,7 @@ function CategoryModal({ initial, onSave, onClose, saving, error }: {
             </button>
           </div>
 
+          {/* Live preview */}
           <div className="flex items-center gap-4 rounded-2xl p-4 mb-5 border border-blue-100" style={{ backgroundColor: color + "08" }}>
             <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl shadow-sm shrink-0"
               style={{ backgroundColor: color + "20", border: `2px solid ${color}40` }}>{icon}</div>
@@ -62,6 +64,7 @@ function CategoryModal({ initial, onSave, onClose, saving, error }: {
               className="w-full px-4 py-3 rounded-xl border border-blue-100 bg-blue-50/50 text-blue-800 placeholder-blue-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all" />
           </div>
 
+          {/* Emoji picker — intentionally kept as emojis, these are user-facing category icons */}
           <div className="mb-4">
             <label className="block text-blue-600 text-[10px] font-bold uppercase tracking-widest mb-2">Icon</label>
             <div className="grid grid-cols-8 sm:grid-cols-10 gap-1.5">
@@ -95,8 +98,9 @@ function CategoryModal({ initial, onSave, onClose, saving, error }: {
             <button onClick={onClose} className="flex-1 py-3.5 rounded-xl border-2 border-blue-100 text-blue-500 font-bold text-sm hover:bg-blue-50 transition-all">Cancel</button>
             <button onClick={() => onSave({ name: name.trim(), icon, color })} disabled={saving || !name.trim()}
               className="flex-1 py-3.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm hover:shadow-lg hover:shadow-blue-600/25">
-              {saving ? <span className="flex items-center justify-center gap-2"><svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>Saving…</span>
-              : initial ? "Save Changes" : "Create Category"}
+              {saving
+                ? <span className="flex items-center justify-center gap-2"><svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>Saving…</span>
+                : initial ? "Save Changes" : "Create Category"}
             </button>
           </div>
         </div>
@@ -120,6 +124,7 @@ function DeleteModal({ category, onConfirm, onClose, deleting, deleteError }: {
         <div className="w-10 h-1 bg-blue-100 rounded-full mx-auto mb-5 sm:hidden" />
 
         <div className="text-center mb-5">
+          {/* Category icon in delete modal is user-defined, kept as emoji */}
           <div className="w-16 h-16 rounded-2xl mx-auto mb-4 flex items-center justify-center text-3xl"
             style={{ backgroundColor: category.color + "20" }}>{category.icon}</div>
           <h3 className="text-blue-800 font-black text-xl font-['Sora',sans-serif]">Delete "{category.name}"?</h3>
@@ -134,9 +139,7 @@ function DeleteModal({ category, onConfirm, onClose, deleting, deleteError }: {
           <div className="mb-5 rounded-2xl border border-amber-200 bg-amber-50 p-4">
             <div className="flex items-start gap-3">
               <div className="w-8 h-8 rounded-xl bg-amber-100 flex items-center justify-center shrink-0 mt-0.5">
-                <svg className="w-4 h-4 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
-                </svg>
+                <AlertTriangle size={15} className="text-amber-500" strokeWidth={2} />
               </div>
               <div>
                 <p className="text-amber-800 font-bold text-sm">Can't delete this category</p>
@@ -177,6 +180,7 @@ function CategoryCard({ category, onEdit, onDelete }: {
   const isEditable = category.isOwned && !category.isDefault;
   return (
     <div className="bg-white rounded-2xl border border-blue-100 p-3.5 sm:p-4 flex items-center gap-3 sm:gap-4 hover:shadow-md hover:border-blue-200 transition-all group">
+      {/* Category icon is user-defined emoji — kept intentionally */}
       <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl flex items-center justify-center text-xl sm:text-2xl shrink-0 shadow-sm"
         style={{ backgroundColor: category.color + "18", border: `1.5px solid ${category.color}30` }}>{category.icon}</div>
       <div className="flex-1 min-w-0">
@@ -238,14 +242,9 @@ export default function CategoriesPage() {
   const handleDelete = async () => {
     if (!deleteTarget) return;
     setDeleting(true); setDeleteError(null);
-    try {
-      await deleteCategory(deleteTarget.id);
-      setDeleteTarget(null);
-    } catch (e: any) {
-      setDeleteError(e.message);
-    } finally {
-      setDeleting(false);
-    }
+    try { await deleteCategory(deleteTarget.id); setDeleteTarget(null); }
+    catch (e: any) { setDeleteError(e.message); }
+    finally { setDeleting(false); }
   };
 
   const openDelete  = (category: Category) => { setDeleteError(null); setDeleteTarget(category); };
@@ -269,7 +268,7 @@ export default function CategoriesPage() {
           </div>
           <button onClick={() => { setModalError(null); setShowCreate(true); }}
             className="shrink-0 flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm font-bold px-3 sm:px-5 py-2.5 sm:py-3 rounded-xl transition-all hover:shadow-lg hover:shadow-blue-600/25 active:scale-95">
-            <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" /></svg>
+            <Plus size={15} strokeWidth={2.5} />
             <span className="hidden sm:inline">New Category</span>
             <span className="sm:hidden">New</span>
           </button>
@@ -278,15 +277,17 @@ export default function CategoriesPage() {
         {/* Stats */}
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           {[
-            { emoji: "🏷️", value: categories.length, label: "Total"    },
-            { emoji: "✨", value: customs.length,    label: "Custom"   },
-            { emoji: "📦", value: defaults.length,   label: "Defaults", desktopOnly: true },
-          ].map(s => (
-            <div key={s.label} className={`bg-white rounded-2xl border border-blue-100 p-4 sm:p-5 flex items-center gap-3 sm:gap-4 ${s.desktopOnly ? "hidden sm:flex" : ""}`}>
-              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-blue-50 flex items-center justify-center text-xl sm:text-2xl shrink-0">{s.emoji}</div>
+            { Icon: Tag,        value: categories.length, label: "Total",    color: "bg-blue-50",   iconColor: "text-blue-500",  desktopOnly: false },
+            { Icon: Sparkles,   value: customs.length,    label: "Custom",   color: "bg-indigo-50", iconColor: "text-indigo-500", desktopOnly: false },
+            { Icon: LayoutGrid, value: defaults.length,   label: "Defaults", color: "bg-blue-50",   iconColor: "text-blue-400",  desktopOnly: true  },
+          ].map(({ Icon, value, label, color, iconColor, desktopOnly }) => (
+            <div key={label} className={`bg-white rounded-2xl border border-blue-100 p-4 sm:p-5 flex items-center gap-3 sm:gap-4 ${desktopOnly ? "hidden sm:flex" : ""}`}>
+              <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl ${color} flex items-center justify-center shrink-0`}>
+                <Icon size={20} className={iconColor} strokeWidth={1.75} />
+              </div>
               <div>
-                <p className="text-blue-800 font-black text-xl sm:text-2xl font-['Sora',sans-serif] leading-none">{s.value}</p>
-                <p className="text-blue-400 text-xs mt-0.5">{s.label}</p>
+                <p className="text-blue-800 font-black text-xl sm:text-2xl font-['Sora',sans-serif] leading-none">{value}</p>
+                <p className="text-blue-400 text-xs mt-0.5">{label}</p>
               </div>
             </div>
           ))}
@@ -312,7 +313,7 @@ export default function CategoriesPage() {
           </div>
         )}
 
-        {/* Custom */}
+        {/* Custom categories */}
         {!loading && (
           <section>
             <div className="mb-3">
@@ -322,7 +323,9 @@ export default function CategoriesPage() {
             {customs.length === 0 ? (
               <button onClick={() => { setModalError(null); setShowCreate(true); }}
                 className="w-full bg-blue-50 hover:bg-blue-100 border-2 border-dashed border-blue-200 hover:border-blue-300 rounded-2xl p-8 sm:p-10 text-center transition-all group">
-                <p className="text-4xl mb-3 group-hover:scale-110 transition-transform inline-block">🏷️</p>
+                <div className="w-14 h-14 rounded-2xl bg-white border border-blue-100 flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform shadow-sm">
+                  <Tag size={24} className="text-blue-400" strokeWidth={1.75} />
+                </div>
                 <p className="text-blue-600 font-bold text-sm sm:text-base">Create your first category</p>
                 <p className="text-blue-400 text-xs sm:text-sm mt-1">Organize your spending your way</p>
               </button>
@@ -334,7 +337,7 @@ export default function CategoriesPage() {
           </section>
         )}
 
-        {/* Defaults */}
+        {/* Default categories */}
         {!loading && defaults.length > 0 && (
           <section>
             <div className="mb-3">

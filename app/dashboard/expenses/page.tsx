@@ -4,10 +4,12 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
+import { useGroup } from "@/contexts/GroupContext";
 import { useExpenses } from "@/hooks/useExpenses";
 import { useCategories } from "@/hooks/useCategories";
 import { expenseService } from "@/services/expense.service";
 import type { Expense } from "@/types/expense.types";
+import type { GroupMember } from "@/types/group.types";
 
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 const KHR_RATE = 4000;
@@ -16,13 +18,23 @@ function fmtUSD(n: number) { return `$${n.toFixed(2)}`; }
 function fmtKHR(usd: number) { return `៛${Math.round(usd * KHR_RATE).toLocaleString()}`; }
 function fmtPrimary(usd: number, pref: "USD" | "KHR") { return pref === "KHR" ? fmtKHR(usd) : fmtUSD(usd); }
 function fmtSecondary(usd: number, pref: "USD" | "KHR") { return pref === "KHR" ? fmtUSD(usd) : fmtKHR(usd); }
-
 function fmtDate(iso: string) {
   const d = new Date(iso + "T00:00:00");
   return `${MONTHS[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
 }
 
-// ─── Delete modal ─────────────────────────────────────────────────
+/* ─── Member avatar ─────────────────────────────────────────────── */
+function MemberAvatar({ member }: { member: GroupMember }) {
+  return member.avatar
+    ? <img src={member.avatar} alt={member.name} className="w-5 h-5 rounded-full object-cover ring-1 ring-white" />
+    : (
+      <div className="w-5 h-5 rounded-full bg-indigo-500 ring-1 ring-white flex items-center justify-center text-[9px] font-bold text-white">
+        {member.name.charAt(0).toUpperCase()}
+      </div>
+    );
+}
+
+/* ─── Delete modal ── */
 function DeleteModal({ expense, pref, onConfirm, onClose, deleting }: {
   expense: Expense; pref: "USD" | "KHR"; onConfirm: () => void; onClose: () => void; deleting: boolean;
 }) {
@@ -38,18 +50,12 @@ function DeleteModal({ expense, pref, onConfirm, onClose, deleting }: {
             {expense.category.icon}
           </div>
           <h3 className="text-blue-800 font-black text-xl font-['Sora',sans-serif]">Delete this expense?</h3>
-          {/* Show primary currency large, secondary dimmed */}
           <p className="text-red-500 font-bold text-lg mt-1">{fmtPrimary(expense.amountBase, pref)}</p>
           <p className="text-blue-300 text-sm">{fmtSecondary(expense.amountBase, pref)}</p>
-          <p className="text-blue-400 text-sm mt-1">
-            {expense.merchantName ?? expense.category.name} · {fmtDate(expense.date)}
-          </p>
+          <p className="text-blue-400 text-sm mt-1">{expense.merchantName ?? expense.category.name} · {fmtDate(expense.date)}</p>
         </div>
         <div className="flex gap-3">
-          <button onClick={onClose}
-            className="flex-1 py-3.5 rounded-xl border-2 border-blue-100 text-blue-500 font-bold text-sm hover:bg-blue-50 transition-all">
-            Cancel
-          </button>
+          <button onClick={onClose} className="flex-1 py-3.5 rounded-xl border-2 border-blue-100 text-blue-500 font-bold text-sm hover:bg-blue-50 transition-all">Cancel</button>
           <button onClick={onConfirm} disabled={deleting}
             className="flex-1 py-3.5 rounded-xl bg-red-500 hover:bg-red-600 text-white font-bold text-sm transition-all disabled:opacity-50">
             {deleting ? "Deleting…" : "Delete"}
@@ -60,9 +66,12 @@ function DeleteModal({ expense, pref, onConfirm, onClose, deleting }: {
   );
 }
 
-// ─── Expense row ──────────────────────────────────────────────────
-function ExpenseRow({ expense, pref, onEdit, onDelete }: {
-  expense: Expense; pref: "USD" | "KHR"; onEdit: (e: Expense) => void; onDelete: (e: Expense) => void;
+/* ─── Expense row ── */
+function ExpenseRow({ expense, pref, onEdit, onDelete, groupMembers, currentUserId }: {
+  expense: Expense; pref: "USD" | "KHR";
+  onEdit: (e: Expense) => void; onDelete: (e: Expense) => void;
+  groupMembers?: GroupMember[];
+  currentUserId?: string;
 }) {
   const pmColors: Record<string, string> = {
     KHQR: "bg-blue-100 text-blue-600", CASH: "bg-green-50 text-green-600",
@@ -70,26 +79,31 @@ function ExpenseRow({ expense, pref, onEdit, onDelete }: {
     APP: "bg-orange-50 text-orange-500", OTHER: "bg-slate-50 text-slate-500",
   };
 
-  // Native amount as entered (unchanged — this is what the user typed)
   const nativeAmt = expense.currency === "KHR"
     ? `៛${Math.round(expense.amount).toLocaleString()}`
     : fmtUSD(expense.amount);
-
-  // Summary column: primary (via pref) + secondary dimmed
-  // amountBase is always USD, so we can drive fmtPrimary/fmtSecondary from it
   const primaryAmt   = fmtPrimary(expense.amountBase, pref);
   const secondaryAmt = fmtSecondary(expense.amountBase, pref);
-
-  // If the native amount already matches the preferred display, skip the secondary
   const nativeMatchesPrimary =
     (pref === "USD" && expense.currency === "USD") ||
     (pref === "KHR" && expense.currency === "KHR");
 
+  // Find the member who added this expense
+  const author = groupMembers?.find(m => m.userId === (expense as any).userId);
+  // In group mode: only the author (or owner) can edit/delete their own expenses
+  const canModify = !groupMembers || (expense as any).userId === currentUserId;
+
   return (
     <div className="flex items-center gap-3 py-3 border-b border-blue-50 last:border-0 active:bg-blue-50/60 sm:hover:bg-blue-50/40 -mx-2 px-2 rounded-xl transition-all group">
-      <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center text-lg sm:text-xl shrink-0"
+      <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center text-lg sm:text-xl shrink-0 relative"
         style={{ backgroundColor: expense.category.color + "18", border: `1.5px solid ${expense.category.color}30` }}>
         {expense.category.icon}
+        {/* Member avatar badge in group mode */}
+        {author && (
+          <div className="absolute -bottom-1 -right-1">
+            <MemberAvatar member={author} />
+          </div>
+        )}
       </div>
 
       <div className="flex-1 min-w-0">
@@ -100,6 +114,7 @@ function ExpenseRow({ expense, pref, onEdit, onDelete }: {
           <span className="text-blue-400 text-xs">{expense.category.name}</span>
           <span className="text-blue-200 text-xs">·</span>
           <span className="text-blue-300 text-xs">{fmtDate(expense.date)}</span>
+          {author && <span className="text-indigo-400 text-xs">· {author.name.split(" ")[0]}</span>}
           <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md inline-block ${pmColors[expense.paymentMethod] ?? "bg-blue-50 text-blue-400"}`}>
             {expense.paymentMethod}
           </span>
@@ -107,46 +122,49 @@ function ExpenseRow({ expense, pref, onEdit, onDelete }: {
       </div>
 
       <div className="text-right shrink-0">
-        {/* Primary amount (respects pref) */}
         <p className="text-red-500 font-bold text-sm leading-tight">-{primaryAmt}</p>
-        {/* Secondary: show native if it differs from primary, otherwise show the other currency */}
         <p className="text-blue-300 text-xs leading-tight">
-          {nativeMatchesPrimary
-            ? `-${secondaryAmt}`          // native === primary, so show the other currency
-            : `-${nativeAmt}`             // native differs from primary, show how it was entered
-          }
+          {nativeMatchesPrimary ? `-${secondaryAmt}` : `-${nativeAmt}`}
         </p>
       </div>
 
-      <div className="flex items-center gap-1 shrink-0 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
-        <button onClick={() => onEdit(expense)} aria-label="Edit"
-          className="p-2 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-500 transition-colors">
-          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-              d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-          </svg>
-        </button>
-        <button onClick={() => onDelete(expense)} aria-label="Delete"
-          className="p-2 rounded-lg bg-red-50 hover:bg-red-100 text-red-400 transition-colors">
-          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-          </svg>
-        </button>
-      </div>
+      {/* Edit/delete only shown if user can modify */}
+      {canModify && (
+        <div className="flex items-center gap-1 shrink-0 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+          <button onClick={() => onEdit(expense)} aria-label="Edit"
+            className="p-2 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-500 transition-colors">
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+            </svg>
+          </button>
+          <button onClick={() => onDelete(expense)} aria-label="Delete"
+            className="p-2 rounded-lg bg-red-50 hover:bg-red-100 text-red-400 transition-colors">
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+          </button>
+        </div>
+      )}
     </div>
   );
 }
 
-// ═══════════════════════════════════════════════════════════════════
-//  PAGE
-// ═══════════════════════════════════════════════════════════════════
+/* ═══════════════════════════════════════════════════════════════════
+   PAGE
+═══════════════════════════════════════════════════════════════════ */
 export default function ExpensesPage() {
   const { user } = useAuth();
-  const pref = user?.preferredCurrency ?? "USD";  // ✅ drives all display
+  const { isGroup, activeContext } = useGroup();
+  const pref = user?.preferredCurrency ?? "USD";
+
+  const groupId      = isGroup && activeContext.type === "group" ? activeContext.groupId : undefined;
+  const groupMembers = isGroup && activeContext.type === "group" ? (activeContext.groupMembers ?? []) : [];
 
   const router = useRouter();
   const [catFilter,    setCatFilter]    = useState<string | null>(null);
+  const [memberFilter, setMemberFilter] = useState<string | null>(null); // userId filter in group mode
   const [from,         setFrom]         = useState("");
   const [to,           setTo]           = useState("");
   const [showFilters,  setShowFilters]  = useState(false);
@@ -154,13 +172,18 @@ export default function ExpensesPage() {
   const [deleting,     setDeleting]     = useState(false);
 
   const { expenses, totalElements, loading, error, refetch } = useExpenses({
-    size: 200,
+    size: 200, groupId,
     categoryId: catFilter ?? undefined,
     from: from || undefined,
     to:   to   || undefined,
   });
 
   const { categories } = useCategories();
+
+  // Client-side member filter (applied after fetching)
+  const displayedExpenses = memberFilter
+    ? expenses.filter(e => (e as any).userId === memberFilter)
+    : expenses;
 
   const handleDelete = async () => {
     if (!deleteTarget) return;
@@ -176,8 +199,8 @@ export default function ExpensesPage() {
     }
   };
 
-  const totalUSD   = expenses.reduce((s, e) => s + e.amountBase, 0);
-  const hasFilters = catFilter !== null || from || to;
+  const totalUSD   = displayedExpenses.reduce((s, e) => s + e.amountBase, 0);
+  const hasFilters = catFilter !== null || from || to || memberFilter !== null;
 
   return (
     <>
@@ -193,6 +216,12 @@ export default function ExpensesPage() {
           <div>
             <p className="text-blue-400 text-xs font-bold uppercase tracking-widest">Track</p>
             <h1 className="text-blue-800 font-black text-2xl sm:text-3xl font-['Sora',sans-serif] leading-tight mt-0.5">Expenses</h1>
+            {isGroup && (
+              <div className="flex items-center gap-1.5 mt-0.5">
+                <span className="text-indigo-400 text-xs">👥</span>
+                <span className="text-indigo-500 text-xs font-semibold">{activeContext.groupName}</span>
+              </div>
+            )}
             <p className="text-blue-400 text-xs sm:text-sm mt-1 hidden sm:block">
               {totalElements > 0 ? `${totalElements} total expenses recorded` : "Start tracking your spending"}
             </p>
@@ -200,8 +229,7 @@ export default function ExpensesPage() {
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             <button onClick={() => setShowFilters(!showFilters)}
               className={`flex items-center gap-1.5 px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl border text-xs sm:text-sm font-bold transition-all ${
-                hasFilters ? "bg-blue-600 border-blue-600 text-white shadow-md" : "bg-white border-blue-100 text-blue-500 hover:bg-blue-50"
-              }`}>
+                hasFilters ? "bg-blue-600 border-blue-600 text-white shadow-md" : "bg-white border-blue-100 text-blue-500 hover:bg-blue-50"}`}>
               <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
               </svg>
@@ -221,11 +249,11 @@ export default function ExpensesPage() {
         </div>
 
         {/* ── Summary strip ── */}
-        {!loading && expenses.length > 0 && (
+        {!loading && displayedExpenses.length > 0 && (
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3" style={{ animation: "fadeIn 0.3s ease" }}>
             <div className="bg-white rounded-2xl border border-blue-100 px-4 py-3 sm:px-5 sm:py-4">
               <p className="text-blue-400 text-[10px] font-bold uppercase tracking-widest mb-1">Showing</p>
-              <p className="text-blue-800 font-black text-lg sm:text-xl font-['Sora',sans-serif] leading-tight">{expenses.length}</p>
+              <p className="text-blue-800 font-black text-lg sm:text-xl font-['Sora',sans-serif] leading-tight">{displayedExpenses.length}</p>
               <p className="text-blue-300 text-xs mt-0.5">of {totalElements} total</p>
             </div>
             <div className="bg-white rounded-2xl border border-blue-100 px-4 py-3 sm:px-5 sm:py-4">
@@ -236,7 +264,7 @@ export default function ExpensesPage() {
             <div className="hidden sm:block bg-white rounded-2xl border border-blue-100 px-5 py-4">
               <p className="text-blue-400 text-[10px] font-bold uppercase tracking-widest mb-1">Average</p>
               <p className="text-blue-800 font-black text-xl font-['Sora',sans-serif] leading-tight">
-                {fmtPrimary(expenses.length > 0 ? totalUSD / expenses.length : 0, pref)}
+                {fmtPrimary(displayedExpenses.length > 0 ? totalUSD / displayedExpenses.length : 0, pref)}
               </p>
               <p className="text-blue-300 text-xs mt-0.5">per expense</p>
             </div>
@@ -250,7 +278,7 @@ export default function ExpensesPage() {
             <div className="flex items-center justify-between">
               <p className="text-blue-800 font-bold text-sm">Filter Expenses</p>
               {hasFilters && (
-                <button onClick={() => { setCatFilter(null); setFrom(""); setTo(""); }}
+                <button onClick={() => { setCatFilter(null); setFrom(""); setTo(""); setMemberFilter(null); }}
                   className="text-red-400 text-xs sm:text-sm font-semibold hover:text-red-600 transition-colors flex items-center gap-1">
                   <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -259,6 +287,27 @@ export default function ExpensesPage() {
                 </button>
               )}
             </div>
+
+            {/* Member filter — group mode only */}
+            {isGroup && groupMembers.length > 0 && (
+              <div>
+                <p className="text-blue-400 text-xs font-semibold mb-2">Member</p>
+                <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
+                  <button onClick={() => setMemberFilter(null)}
+                    className={`flex-shrink-0 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all ${memberFilter === null ? "bg-indigo-600 text-white shadow-md" : "bg-blue-50 text-blue-400 hover:bg-blue-100"}`}>
+                    All Members
+                  </button>
+                  {groupMembers.map(m => (
+                    <button key={m.userId} onClick={() => setMemberFilter(m.userId)}
+                      className={`flex-shrink-0 flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all ${memberFilter === m.userId ? "bg-indigo-600 text-white shadow-md" : "bg-blue-50 text-blue-400 hover:bg-blue-100"}`}>
+                      <MemberAvatar member={m} />
+                      {m.name.split(" ")[0]}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div>
               <p className="text-blue-400 text-xs font-semibold mb-2">Category</p>
               <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-none">
@@ -290,7 +339,6 @@ export default function ExpensesPage() {
           </div>
         )}
 
-        {/* ── Error ── */}
         {error && (
           <div className="flex items-center gap-3 bg-red-50 border border-red-200 text-red-600 text-sm px-4 py-3.5 rounded-2xl">
             <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -302,7 +350,7 @@ export default function ExpensesPage() {
 
         {/* ── Expense list ── */}
         <div className="bg-white rounded-2xl border border-blue-100 shadow-sm overflow-hidden">
-          {!loading && expenses.length > 0 && (
+          {!loading && displayedExpenses.length > 0 && (
             <div className="hidden sm:flex items-center gap-4 px-8 py-3 border-b border-blue-50 bg-blue-50/50">
               <div className="w-11 shrink-0" />
               <div className="flex-1 text-blue-400 text-[10px] font-bold uppercase tracking-widest">Expense</div>
@@ -329,7 +377,7 @@ export default function ExpensesPage() {
                 </div>
               ))}
             </div>
-          ) : expenses.length === 0 ? (
+          ) : displayedExpenses.length === 0 ? (
             <div className="text-center py-16 sm:py-20 px-6">
               <p className="text-5xl sm:text-6xl mb-4">📊</p>
               <p className="text-blue-800 font-bold text-lg sm:text-xl">
@@ -350,13 +398,15 @@ export default function ExpensesPage() {
             </div>
           ) : (
             <div className="p-3 sm:p-6">
-              {expenses.map(e => (
+              {displayedExpenses.map(e => (
                 <ExpenseRow
                   key={e.id}
                   expense={e}
                   pref={pref}
                   onEdit={exp => router.push(`/dashboard/expenses/edit/${exp.id}`)}
                   onDelete={setDeleteTarget}
+                  groupMembers={isGroup ? groupMembers : undefined}
+                  currentUserId={user?.id}
                 />
               ))}
             </div>
@@ -368,11 +418,8 @@ export default function ExpensesPage() {
 
       {deleteTarget && (
         <DeleteModal
-          expense={deleteTarget}
-          pref={pref}
-          onConfirm={handleDelete}
-          onClose={() => setDeleteTarget(null)}
-          deleting={deleting}
+          expense={deleteTarget} pref={pref}
+          onConfirm={handleDelete} onClose={() => setDeleteTarget(null)} deleting={deleting}
         />
       )}
     </>
