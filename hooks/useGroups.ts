@@ -1,35 +1,18 @@
-"use client";
-
 import { useState, useEffect, useCallback } from "react";
 import { groupService } from "@/services/group.service";
 import { useGroup } from "@/contexts/GroupContext";
 import type { Group } from "@/types/group.types";
 
-interface UseGroupsReturn {
-  groups:              Group[];
-  loading:             boolean;
-  error:               string | null;
-  refetch:             () => Promise<void>;
-  createGroup:         (name: string) => Promise<Group>;
-  joinGroup:           (inviteCode: string) => Promise<Group>;
-  leaveGroup:          (groupId: string) => Promise<void>;
-  removeMember:        (groupId: string, targetUserId: string) => Promise<void>;
-  dissolveGroup:       (groupId: string) => Promise<void>;
-  regenerateInvite:    (groupId: string) => Promise<Group>;
-}
-
-export function useGroups(): UseGroupsReturn {
+export function useGroups() {
   const [groups,  setGroups]  = useState<Group[]>([]);
   const [loading, setLoading] = useState(true);
   const [error,   setError]   = useState<string | null>(null);
 
-  // Keep GroupContext in sync whenever this hook mutates groups
   const { refreshGroups, switchToPersonal, activeContext } = useGroup();
 
-  const fetchGroups = useCallback(async () => {
+  const fetch = useCallback(async () => {
+    setLoading(true); setError(null);
     try {
-      setLoading(true);
-      setError(null);
       const data = await groupService.getMyGroups();
       setGroups(data);
     } catch (e: any) {
@@ -39,56 +22,62 @@ export function useGroups(): UseGroupsReturn {
     }
   }, []);
 
-  useEffect(() => { fetchGroups(); }, [fetchGroups]);
+  useEffect(() => { fetch(); }, [fetch]);
+
+  const refetch = useCallback(async () => {
+    await fetch();
+    await refreshGroups();
+  }, [fetch, refreshGroups]);
 
   const createGroup = useCallback(async (name: string): Promise<Group> => {
     const group = await groupService.create({ name });
-    await fetchGroups();
-    await refreshGroups();
+    await refetch();
     return group;
-  }, [fetchGroups, refreshGroups]);
+  }, [refetch]);
 
   const joinGroup = useCallback(async (inviteCode: string): Promise<Group> => {
     const group = await groupService.join({ inviteCode });
-    await fetchGroups();
-    await refreshGroups();
+    await refetch();
     return group;
-  }, [fetchGroups, refreshGroups]);
+  }, [refetch]);
 
-  const leaveGroup = useCallback(async (groupId: string): Promise<void> => {
+  const renameGroup = useCallback(async (groupId: string, name: string): Promise<Group> => {
+    const group = await groupService.rename(groupId, { name });
+    await refetch();
+    return group;
+  }, [refetch]);
+
+  const leaveGroup = useCallback(async (groupId: string) => {
     await groupService.leave(groupId);
-    // If currently viewing the group we just left, reset to personal
+    // If we're currently in this group, switch back to personal
     if (activeContext.groupId === groupId) switchToPersonal();
-    await fetchGroups();
-    await refreshGroups();
-  }, [fetchGroups, refreshGroups, activeContext, switchToPersonal]);
+    await refetch();
+  }, [activeContext.groupId, switchToPersonal, refetch]);
 
-  const removeMember = useCallback(async (groupId: string, targetUserId: string): Promise<void> => {
+  const removeMember = useCallback(async (groupId: string, targetUserId: string) => {
     await groupService.removeMember(groupId, targetUserId);
-    // Refresh local group list to reflect new member count
-    await fetchGroups();
-  }, [fetchGroups]);
+    await refetch();
+  }, [refetch]);
 
-  const dissolveGroup = useCallback(async (groupId: string): Promise<void> => {
+  const dissolveGroup = useCallback(async (groupId: string) => {
     await groupService.dissolve(groupId);
+    // If we were in this group, drop back to personal
     if (activeContext.groupId === groupId) switchToPersonal();
-    await fetchGroups();
-    await refreshGroups();
-  }, [fetchGroups, refreshGroups, activeContext, switchToPersonal]);
+    await refetch();
+  }, [activeContext.groupId, switchToPersonal, refetch]);
 
   const regenerateInvite = useCallback(async (groupId: string): Promise<Group> => {
-    const updated = await groupService.regenerateInviteCode(groupId);
-    setGroups(prev => prev.map(g => g.id === groupId ? updated : g));
-    return updated;
-  }, []);
+    const group = await groupService.regenerateInviteCode(groupId);
+    await refetch();
+    return group;
+  }, [refetch]);
 
   return {
-    groups,
-    loading,
-    error,
-    refetch: fetchGroups,
+    groups, loading, error,
+    refetch,
     createGroup,
     joinGroup,
+    renameGroup,
     leaveGroup,
     removeMember,
     dissolveGroup,
