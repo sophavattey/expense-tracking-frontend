@@ -9,10 +9,7 @@ import {
   Eye, EyeOff, AlertCircle, Users
 } from "lucide-react";
 
-// ─── Floating finance stat pill ──────────────────────────────────
-function StatPill({
-  icon: Icon, label, value, color, style
-}: {
+function StatPill({ icon: Icon, label, value, color, style }: {
   icon: React.ElementType; label: string; value: string;
   color: string; style?: React.CSSProperties;
 }) {
@@ -31,7 +28,6 @@ function StatPill({
   );
 }
 
-// ─── Mini chart bars ──────────────────────────────────────────────
 function MiniChart() {
   const bars = [40, 65, 45, 80, 55, 90, 70, 85, 60, 95, 75, 100];
   return (
@@ -43,56 +39,44 @@ function MiniChart() {
   );
 }
 
-// ─── Password input with toggle ───────────────────────────────────
-function PasswordInput({
-  value, onChange, placeholder, id
-}: { value: string; onChange: (v: string) => void; placeholder?: string; id?: string }) {
+function PasswordInput({ value, onChange, placeholder, id }: {
+  value: string; onChange: (v: string) => void; placeholder?: string; id?: string;
+}) {
   const [show, setShow] = useState(false);
   return (
     <div className="relative">
       <input
-        id={id}
-        type={show ? "text" : "password"}
-        value={value}
+        id={id} type={show ? "text" : "password"} value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder || "••••••••"}
-        className="w-full px-4 py-3 pr-11 rounded-xl border border-blue-100 bg-blue-50/50 text-blue-800 placeholder-blue-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+        className="w-full px-4 py-3 pr-11 rounded-xl border border-gray-200 bg-gray-50 text-gray-800 placeholder-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
       />
-      <button
-        type="button"
-        onClick={() => setShow(!show)}
-        className="absolute right-3 top-1/2 -translate-y-1/2 text-blue-300 hover:text-blue-500 transition-colors"
-        aria-label={show ? "Hide password" : "Show password"}
-      >
+      <button type="button" onClick={() => setShow(!show)}
+        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+        aria-label={show ? "Hide password" : "Show password"}>
         {show ? <EyeOff size={16} /> : <Eye size={16} />}
       </button>
     </div>
   );
 }
 
-// ─── Login Page ───────────────────────────────────────────────────
 export default function LoginPage() {
   const [email,    setEmail]    = useState("");
   const [password, setPassword] = useState("");
-
   const { login, loginWithGoogle, loading, error, clearError } = useAuth();
   const searchParams = useSearchParams();
 
-  // Detect if we arrived here from an invite link
-  const redirect     = searchParams.get("redirect") ?? "";
-  const fromInvite   = redirect.startsWith("/join?code=");
-  const inviteCode   = fromInvite ? (new URLSearchParams(redirect.split("?")[1])).get("code") : null;
+  const redirect   = searchParams.get("redirect") ?? "";
+  const fromInvite = redirect.startsWith("/join?code=");
+  const inviteCode = fromInvite ? (new URLSearchParams(redirect.split("?")[1])).get("code") : null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     clearError();
-    await login(email, password); // login() reads ?redirect= from URL internally
+    await login(email, password);
   };
 
-  const handleGoogle = () => {
-    clearError();
-    loginWithGoogle(); // loginWithGoogle() reads ?redirect= from URL internally
-  };
+  const handleGoogle = () => { clearError(); loginWithGoogle(); };
 
   return (
     <>
@@ -120,7 +104,7 @@ export default function LoginPage() {
 
       <div className="min-h-screen flex">
 
-        {/* ── Left panel ── */}
+        {/* ── Left panel — untouched blue branding ── */}
         <div className="hidden lg:flex lg:w-[45%] xl:w-[40%] relative bg-blue-600 flex-col justify-between overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-br from-blue-700 via-blue-600 to-blue-500" />
           <div className="absolute top-0 right-0 w-80 h-80 bg-blue-500/40 rounded-full blur-3xl translate-x-1/2 -translate-y-1/2" />
@@ -142,11 +126,11 @@ export default function LoginPage() {
 
           <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-10 pb-8">
             <div className="relative w-full max-w-[300px] h-[320px]">
-              <StatPill icon={PiggyBank} label="This Month Saved"  value="$248.50"      color="text-green-300"
+              <StatPill icon={PiggyBank}  label="This Month Saved" value="$248.50"     color="text-green-300"
                 style={{ top: "0%",    left: "5%",  animation: "float-a 5s ease-in-out infinite" }} />
-              <StatPill icon={BarChart3} label="Budget Used"       value="62% of $500"  color="text-blue-200"
+              <StatPill icon={BarChart3}  label="Budget Used"      value="62% of $500" color="text-blue-200"
                 style={{ top: "30%",   right: "0%", animation: "float-b 6s ease-in-out infinite 1s" }} />
-              <StatPill icon={Receipt}   label="Largest Expense"   value="៛87,000"      color="text-red-300"
+              <StatPill icon={Receipt}    label="Largest Expense"  value="៛87,000"     color="text-red-300"
                 style={{ bottom: "10%", left: "8%", animation: "float-a 7s ease-in-out infinite 0.5s" }} />
               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-28 h-28 rounded-full bg-white/10 border border-white/20 backdrop-blur-sm flex items-center justify-center shadow-2xl">
                 <div className="w-20 h-20 rounded-full bg-white/15 border border-white/20 flex items-center justify-center">
@@ -163,12 +147,11 @@ export default function LoginPage() {
               </p>
             </div>
           </div>
-
           <div className="relative z-10 p-10" />
         </div>
 
-        {/* ── Right panel ── */}
-        <div className="flex-1 flex items-center justify-center px-6 py-12 bg-blue-50">
+        {/* ── Right panel — gray palette ── */}
+        <div className="flex-1 flex items-center justify-center px-6 py-12 bg-gray-50">
           <div className="w-full max-w-[420px]">
 
             {/* Mobile logo */}
@@ -176,12 +159,12 @@ export default function LoginPage() {
               <div className="w-8 h-8 rounded-xl bg-blue-600 flex items-center justify-center">
                 <Wallet size={15} className="text-white" strokeWidth={2} />
               </div>
-              <span className="text-blue-800 font-black text-xl font-['Sora',sans-serif]">
+              <span className="text-gray-800 font-black text-xl font-['Sora',sans-serif]">
                 Fin<span className="text-blue-600">Set</span>
               </span>
             </div>
 
-            {/* ── Invite banner — shown when redirected from an invite link ── */}
+            {/* Invite banner */}
             {fromInvite && (
               <div className="form-in mb-6 flex items-center gap-3 bg-indigo-50 border border-indigo-200 rounded-2xl px-4 py-3.5">
                 <div className="w-9 h-9 rounded-xl bg-indigo-600 flex items-center justify-center shrink-0">
@@ -199,20 +182,17 @@ export default function LoginPage() {
 
             {/* Heading */}
             <div className="form-in mb-8">
-              <h1 className="text-3xl font-black text-blue-800 font-['Sora',sans-serif] mb-1">
-                Welcome back
-              </h1>
-              <p className="text-blue-400 text-sm">
+              <h1 className="text-3xl font-black text-gray-800 font-['Sora',sans-serif] mb-1">Welcome back</h1>
+              <p className="text-gray-400 text-sm">
                 Don't have an account?{" "}
-                <Link
-                  href={fromInvite ? `/signup?redirect=${encodeURIComponent(redirect)}` : "/signup"}
+                <Link href={fromInvite ? `/signup?redirect=${encodeURIComponent(redirect)}` : "/signup"}
                   className="text-blue-600 font-semibold hover:text-blue-700 underline underline-offset-2">
                   Sign up free
                 </Link>
               </p>
             </div>
 
-            {/* Error banner */}
+            {/* Error */}
             {error && (
               <div className="form-in mb-4 flex items-center gap-3 bg-red-50 border border-red-200 text-red-600 text-sm px-4 py-3 rounded-xl">
                 <AlertCircle size={16} className="shrink-0" />
@@ -220,12 +200,12 @@ export default function LoginPage() {
               </div>
             )}
 
-            {/* Google button */}
+            {/* Google */}
             <div className="form-in-1 mb-5">
               <button onClick={handleGoogle} disabled={loading}
-                className="w-full flex items-center justify-center gap-3 bg-white border border-blue-200 hover:border-blue-300 text-blue-700 font-semibold text-sm py-3.5 rounded-xl transition-all hover:shadow-md hover:shadow-blue-100 active:scale-[0.98] disabled:opacity-60 disabled:cursor-wait">
+                className="w-full flex items-center justify-center gap-3 bg-white border border-gray-200 hover:border-gray-300 text-gray-700 font-semibold text-sm py-3.5 rounded-xl transition-all hover:shadow-md active:scale-[0.98] disabled:opacity-60 disabled:cursor-wait">
                 {loading ? (
-                  <svg className="w-5 h-5 animate-spin text-blue-400" fill="none" viewBox="0 0 24 24">
+                  <svg className="w-5 h-5 animate-spin text-gray-400" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                   </svg>
@@ -243,24 +223,24 @@ export default function LoginPage() {
 
             {/* Divider */}
             <div className="form-in-2 relative flex items-center gap-3 mb-5">
-              <div className="flex-1 h-px bg-blue-100" />
-              <span className="text-blue-300 text-xs font-medium uppercase tracking-widest">or</span>
-              <div className="flex-1 h-px bg-blue-100" />
+              <div className="flex-1 h-px bg-gray-200" />
+              <span className="text-gray-400 text-xs font-medium uppercase tracking-widest">or</span>
+              <div className="flex-1 h-px bg-gray-200" />
             </div>
 
             {/* Form */}
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="form-in-3">
-                <label htmlFor="email" className="block text-blue-700 text-xs font-bold uppercase tracking-widest mb-1.5">Email</label>
+                <label htmlFor="email" className="block text-gray-500 text-xs font-bold uppercase tracking-widest mb-1.5">Email</label>
                 <input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)}
                   placeholder="you@example.com" required autoComplete="email"
-                  className="w-full px-4 py-3 rounded-xl border border-blue-100 bg-blue-50/50 text-blue-800 placeholder-blue-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all" />
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 text-gray-800 placeholder-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all" />
               </div>
 
               <div className="form-in-3">
                 <div className="flex items-center justify-between mb-1.5">
-                  <label htmlFor="password" className="block text-blue-700 text-xs font-bold uppercase tracking-widest">Password</label>
-                  <Link href="/forgot-password" className="text-blue-400 text-xs hover:text-blue-600 transition-colors">Forgot password?</Link>
+                  <label htmlFor="password" className="block text-gray-500 text-xs font-bold uppercase tracking-widest">Password</label>
+                  <Link href="/forgot-password" className="text-gray-400 text-xs hover:text-blue-600 transition-colors">Forgot password?</Link>
                 </div>
                 <PasswordInput id="password" value={password} onChange={setPassword} />
               </div>
@@ -281,11 +261,11 @@ export default function LoginPage() {
               </div>
             </form>
 
-            <p className="text-blue-300 text-xs text-center mt-8">
+            <p className="text-gray-400 text-xs text-center mt-8">
               By continuing, you agree to FinSet's{" "}
-              <a href="#" className="hover:text-blue-500 underline underline-offset-2">Terms</a>{" "}
+              <a href="#" className="hover:text-gray-600 underline underline-offset-2">Terms</a>{" "}
               &amp;{" "}
-              <a href="#" className="hover:text-blue-500 underline underline-offset-2">Privacy Policy</a>.
+              <a href="#" className="hover:text-gray-600 underline underline-offset-2">Privacy Policy</a>.
             </p>
           </div>
         </div>

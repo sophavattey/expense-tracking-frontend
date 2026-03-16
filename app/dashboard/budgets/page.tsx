@@ -33,7 +33,7 @@ function PeriodBadge({ period }: { period: BudgetPeriod }) {
 
 function BudgetProgressBar({ pct, color }: { pct: number; color: ReturnType<typeof getBudgetColor> }) {
   return (
-    <div className="w-full bg-blue-50 rounded-full h-2 overflow-hidden">
+    <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
       <div className={`h-2 rounded-full transition-all duration-700 ${color.barClass}`} style={{ width: `${Math.min(pct, 100)}%` }} />
     </div>
   );
@@ -59,17 +59,17 @@ function BudgetCard({ status, pref, onEdit, onDelete, canEdit }: {
             {catIcon}
           </div>
           <div>
-            <p className="text-blue-800 font-bold text-sm leading-tight">{catName}</p>
+            <p className="text-gray-800 font-bold text-sm leading-tight">{catName}</p>
             <div className="flex items-center gap-1.5 mt-0.5">
               <PeriodBadge period={status.period} />
-              <span className="text-blue-300 text-[10px]">{status.periodLabel}</span>
+              <span className="text-gray-400 text-[10px]">{status.periodLabel}</span>
             </div>
           </div>
         </div>
         {canEdit && (
           <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
             <button onClick={() => onEdit(status)}
-              className="p-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-500 transition-colors">
+              className="p-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-500 transition-colors">
               <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                   d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -89,11 +89,11 @@ function BudgetCard({ status, pref, onEdit, onDelete, canEdit }: {
       <div className="flex items-end justify-between mb-2">
         <div>
           <p className={`font-black text-xl font-['Sora',sans-serif] leading-none ${color.textClass}`}>{fmtPrimary(status.spentUsd, pref)}</p>
-          <p className="text-blue-300 text-xs mt-0.5">{fmtSecondary(status.spentUsd, pref)}</p>
+          <p className="text-gray-400 text-xs mt-0.5">{fmtSecondary(status.spentUsd, pref)}</p>
         </div>
         <div className="text-right">
-          <p className="text-blue-400 text-xs">of {fmtPrimary(status.limitUsd, pref)}</p>
-          <p className="text-blue-300 text-[10px]">{fmtSecondary(status.limitUsd, pref)}</p>
+          <p className="text-gray-500 text-xs">of {fmtPrimary(status.limitUsd, pref)}</p>
+          <p className="text-gray-400 text-[10px]">{fmtSecondary(status.limitUsd, pref)}</p>
         </div>
       </div>
 
@@ -152,14 +152,22 @@ function BudgetModal({ editStatus, categories, onSave, onClose, saving, error: s
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
       <div className="relative bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl w-full sm:max-w-lg overflow-hidden"
         style={{ animation: "slideUp 0.25s ease both", maxHeight: "92dvh", overflowY: "auto" }}>
-        <div className="w-10 h-1 bg-blue-100 rounded-full mx-auto mt-4 mb-1 sm:hidden" />
+        <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mt-4 mb-1 sm:hidden" />
         <div className="p-6 space-y-5">
-          <div>
-            <h2 className="text-blue-800 font-black text-xl font-['Sora',sans-serif]">{isEdit ? "Edit Budget" : "New Budget"}</h2>
-            <p className="text-blue-400 text-sm mt-0.5">{isEdit ? "Update spending limit" : "Set a limit that resets each period"}</p>
+          <div className="flex items-start justify-between">
+            <div>
+              <h2 className="text-gray-800 font-black text-xl font-['Sora',sans-serif]">{isEdit ? "Edit Budget" : "New Budget"}</h2>
+              <p className="text-gray-400 text-sm mt-0.5">{isEdit ? "Update spending limit" : "Set a limit that resets each period"}</p>
+            </div>
+            <button onClick={onClose}
+              className="w-8 h-8 rounded-xl bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-400 hover:text-gray-600 transition-all shrink-0 ml-3 mt-0.5">
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
           </div>
           {saveError && (
             <div className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-600 text-sm px-4 py-3 rounded-xl">
@@ -170,60 +178,60 @@ function BudgetModal({ editStatus, categories, onSave, onClose, saving, error: s
             </div>
           )}
           <div>
-            <label className="block text-blue-600 text-[10px] font-bold uppercase tracking-widest mb-2">Category</label>
+            <label className="block text-gray-500 text-[10px] font-bold uppercase tracking-widest mb-2">Category</label>
             <div className="grid grid-cols-2 gap-2">
               {categories.map(c => (
                 <button key={c.id} onClick={() => setCategoryId(c.id)}
                   className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border text-left transition-all
-                    ${categoryId === c.id ? "border-transparent shadow-md" : "bg-blue-50 border-blue-100 hover:border-blue-300"}`}
+                    ${categoryId === c.id ? "border-transparent shadow-md" : "bg-gray-50 border-gray-200 hover:border-gray-300"}`}
                   style={categoryId === c.id ? { backgroundColor: c.color + "18", borderColor: c.color + "60" } : {}}>
                   <span className="text-base shrink-0">{c.icon}</span>
-                  <span className="text-xs font-semibold truncate text-blue-700">{c.name}</span>
+                  <span className="text-xs font-semibold truncate text-gray-700">{c.name}</span>
                 </button>
               ))}
             </div>
             {formErr.category && <p className="text-red-500 text-xs mt-1">{formErr.category}</p>}
           </div>
           <div>
-            <label className="block text-blue-600 text-[10px] font-bold uppercase tracking-widest mb-2">Period</label>
+            <label className="block text-gray-500 text-[10px] font-bold uppercase tracking-widest mb-2">Period</label>
             <div className="grid grid-cols-3 gap-2">
               {PERIODS.map(p => (
                 <button key={p.value} onClick={() => setPeriod(p.value)}
                   className={`flex flex-col items-center py-3 rounded-xl border text-center transition-all
-                    ${period === p.value ? "bg-blue-600 border-blue-600 text-white shadow-md" : "bg-blue-50 border-blue-100 text-blue-500 hover:border-blue-300"}`}>
+                    ${period === p.value ? "bg-blue-600 border-blue-600 text-white shadow-md" : "bg-gray-50 border-gray-200 text-gray-600 hover:border-gray-300"}`}>
                   <span className="text-sm font-bold">{p.label}</span>
-                  <span className={`text-[10px] mt-0.5 ${period === p.value ? "text-blue-200" : "text-blue-300"}`}>{p.desc}</span>
+                  <span className={`text-[10px] mt-0.5 ${period === p.value ? "text-blue-200" : "text-gray-400"}`}>{p.desc}</span>
                 </button>
               ))}
             </div>
           </div>
           <div>
             <div className="flex items-center justify-between mb-2">
-              <label className="text-blue-600 text-[10px] font-bold uppercase tracking-widest">Limit *</label>
-              <div className="flex items-center bg-blue-50 rounded-xl p-0.5 border border-blue-100">
+              <label className="text-gray-500 text-[10px] font-bold uppercase tracking-widest">Limit *</label>
+              <div className="flex items-center bg-gray-100 rounded-xl p-0.5 border border-gray-200">
                 {(["USD", "KHR"] as const).map(c => (
                   <button key={c} onClick={() => { setInputCurrency(c); setLimitValue(""); setFormErr({}); }}
-                    className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${inputCurrency === c ? "bg-blue-600 text-white shadow-sm" : "text-blue-400 hover:text-blue-600"}`}>
+                    className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${inputCurrency === c ? "bg-blue-600 text-white shadow-sm" : "text-gray-500 hover:text-gray-700"}`}>
                     {c === "USD" ? "$ USD" : "៛ KHR"}
                   </button>
                 ))}
               </div>
             </div>
             <div className="relative">
-              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-blue-400 font-bold text-sm">{isKhr ? "៛" : "$"}</span>
-              <input type="number" min={isKhr ? "1" : "0.01"} step={isKhr ? "1000" : "0.01"}
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-sm">{isKhr ? "៛" : "$"}</span>
+              <input type="text" inputMode={isKhr ? "numeric" : "decimal"}
                 value={limitValue} onChange={e => setLimitValue(e.target.value)}
-                placeholder={isKhr ? "e.g. 800000" : "0.00"} inputMode={isKhr ? "numeric" : "decimal"}
-                className={`w-full pl-8 pr-4 py-3.5 rounded-xl border bg-blue-50/50 text-blue-800 font-bold
+                placeholder={isKhr ? "e.g. 800000" : "0.00"}
+                className={`w-full pl-8 pr-4 py-3.5 rounded-xl border bg-gray-50 text-gray-800 font-bold
                   focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all
-                  ${formErr.limit ? "border-red-300 bg-red-50/30" : "border-blue-100"}`} />
+                  ${formErr.limit ? "border-red-300 bg-red-50/30" : "border-gray-200"}`} />
             </div>
             {formErr.limit && <p className="text-red-500 text-xs mt-1">{formErr.limit}</p>}
-            {hint && <p className="text-blue-300 text-xs mt-1.5">{hint}</p>}
+            {hint && <p className="text-gray-400 text-xs mt-1.5">{hint}</p>}
           </div>
           <div className="flex gap-3 pt-1">
             <button onClick={onClose}
-              className="flex-1 py-3.5 rounded-xl border-2 border-blue-100 text-blue-500 font-bold text-sm hover:bg-blue-50 transition-all">
+              className="flex-1 py-3.5 rounded-xl border-2 border-gray-200 text-gray-500 font-bold text-sm hover:bg-gray-50 transition-all">
               Cancel
             </button>
             <button onClick={handleSave} disabled={saving}
@@ -251,23 +259,23 @@ function DeleteModal({ status, onConfirm, onClose, deleting }: {
 }) {
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl w-full sm:max-w-sm p-7"
+      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
+      <div className="relative bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl w-full sm:max-w-sm p-7 text-center"
         style={{ animation: "slideUp 0.25s ease both" }}>
-        <div className="w-10 h-1 bg-blue-100 rounded-full mx-auto mb-6 sm:hidden" />
-        <div className="text-center mb-6">
-          <div className="w-16 h-16 rounded-2xl mx-auto mb-4 flex items-center justify-center bg-red-50">
+        <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-6 sm:hidden" />
+        <div className="flex justify-center mb-5">
+          <div className="w-16 h-16 rounded-2xl bg-red-50 flex items-center justify-center">
             <Trash2 size={28} className="text-red-400" strokeWidth={1.75} />
           </div>
-          <h3 className="text-blue-800 font-black text-xl font-['Sora',sans-serif]">Delete this budget?</h3>
-          <p className="text-blue-500 font-semibold mt-1">{status.category?.name ?? "Overall"} · {status.period}</p>
-          <p className="text-blue-400 text-sm mt-1">Limit: {fmtUSD(status.limitUsd)} / {status.period.toLowerCase()}</p>
-          <p className="text-blue-300 text-xs mt-0.5">This won't delete any expenses.</p>
         </div>
+        <h3 className="text-gray-800 font-black text-xl font-['Sora',sans-serif]">Delete this budget?</h3>
+        <p className="text-gray-600 font-semibold mt-1">{status.category?.name ?? "Overall"} · {status.period}</p>
+        <p className="text-gray-500 text-sm mt-1">Limit: {fmtUSD(status.limitUsd)} / {status.period.toLowerCase()}</p>
+        <p className="text-gray-400 text-xs mt-0.5 mb-7">This won't delete any expenses.</p>
         <div className="flex gap-3">
-          <button onClick={onClose} className="flex-1 py-3.5 rounded-xl border-2 border-blue-100 text-blue-500 font-bold text-sm hover:bg-blue-50 transition-all">Cancel</button>
+          <button onClick={onClose} className="flex-1 py-3.5 rounded-xl border-2 border-gray-200 text-gray-500 font-bold text-sm hover:bg-gray-50 transition-all">Cancel</button>
           <button onClick={onConfirm} disabled={deleting}
-            className="flex-1 py-3.5 rounded-xl bg-red-500 hover:bg-red-600 text-white font-bold text-sm transition-all disabled:opacity-50">
+            className="flex-1 py-3.5 rounded-xl bg-red-500 hover:bg-red-600 text-white font-bold text-sm transition-all disabled:opacity-50 shadow-lg shadow-red-500/25">
             {deleting ? "Deleting…" : "Delete"}
           </button>
         </div>
@@ -343,18 +351,16 @@ export default function BudgetsPage() {
         {/* ── Header ── */}
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="text-blue-400 text-xs font-bold uppercase tracking-widest">Manage</p>
-            <h1 className="text-blue-800 font-black text-2xl sm:text-3xl font-['Sora',sans-serif] mt-0.5">Budgets</h1>
+            <p className="text-gray-400 text-xs font-bold uppercase tracking-widest">Manage</p>
+            <h1 className="text-gray-800 font-black text-2xl sm:text-3xl font-['Sora',sans-serif] mt-0.5">Budgets</h1>
             {isGroup && (
               <div className="flex items-center gap-1.5 mt-1">
-                <div className="w-4 h-4 rounded flex items-center justify-center shrink-0">
-                  <Users size={13} className="text-indigo-400" strokeWidth={2} />
-                </div>
+                <Users size={13} className="text-indigo-400" strokeWidth={2} />
                 <span className="text-indigo-500 text-xs font-semibold">{activeContext.groupName}</span>
-                {!isOwner && <span className="text-blue-300 text-xs">· View only</span>}
+                {!isOwner && <span className="text-gray-400 text-xs">· View only</span>}
               </div>
             )}
-            <p className="text-blue-400 text-sm mt-1 hidden sm:block">
+            <p className="text-gray-400 text-sm mt-1 hidden sm:block">
               {summary
                 ? `${summary.totalBudgets} budget${summary.totalBudgets !== 1 ? "s" : ""} · ${summary.overBudgetCount} over limit`
                 : "Set limits to control your spending"}
@@ -373,7 +379,7 @@ export default function BudgetsPage() {
           )}
         </div>
 
-        {/* ── View-only notice for group members ── */}
+        {/* ── View-only notice ── */}
         {isGroup && !isOwner && (
           <div className="flex items-center gap-3 bg-indigo-50 border border-indigo-100 text-indigo-600 text-sm px-4 py-3 rounded-2xl">
             <div className="w-8 h-8 rounded-xl bg-indigo-100 flex items-center justify-center shrink-0">
@@ -387,15 +393,15 @@ export default function BudgetsPage() {
         {!loading && summary && summary.totalBudgets > 0 && (
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3" style={{ animation: "fadeIn 0.4s ease" }}>
             {[
-              { label: "Total Limit",     value: fmtPrimary(summary.totalLimitUsd, pref),     sub: fmtSecondary(summary.totalLimitUsd, pref),     color: "text-blue-800" },
+              { label: "Total Limit",     value: fmtPrimary(summary.totalLimitUsd, pref),     sub: fmtSecondary(summary.totalLimitUsd, pref),     color: "text-gray-800" },
               { label: "Total Spent",     value: fmtPrimary(summary.totalSpentUsd, pref),     sub: fmtSecondary(summary.totalSpentUsd, pref),     color: overallColor.textClass },
               { label: "Total Remaining", value: fmtPrimary(summary.totalRemainingUsd, pref), sub: fmtSecondary(summary.totalRemainingUsd, pref), color: summary.totalRemainingUsd < 0 ? "text-red-500" : "text-green-600" },
               { label: "Over Budget",     value: `${summary.overBudgetCount} budget${summary.overBudgetCount !== 1 ? "s" : ""}`, sub: `${summary.nearLimitCount} near limit`, color: summary.overBudgetCount > 0 ? "text-red-500" : "text-green-600" },
             ].map(card => (
-              <div key={card.label} className="bg-white rounded-2xl border border-blue-100 px-4 py-3 sm:px-5 sm:py-4 shadow-sm">
-                <p className="text-blue-400 text-[10px] font-bold uppercase tracking-widest mb-1">{card.label}</p>
+              <div key={card.label} className="bg-white rounded-2xl border border-gray-100 px-4 py-3 sm:px-5 sm:py-4 shadow-sm">
+                <p className="text-gray-400 text-[10px] font-bold uppercase tracking-widest mb-1">{card.label}</p>
                 <p className={`font-black text-lg sm:text-xl font-['Sora',sans-serif] leading-tight ${card.color}`}>{card.value}</p>
-                <p className="text-blue-300 text-xs mt-0.5">{card.sub}</p>
+                <p className="text-gray-400 text-xs mt-0.5">{card.sub}</p>
               </div>
             ))}
           </div>
@@ -408,14 +414,14 @@ export default function BudgetsPage() {
           return (
             <div className={`bg-white rounded-2xl border p-4 sm:p-5 shadow-sm ${oc.borderClass}`}>
               <div className="flex items-center justify-between mb-3">
-                <p className="text-blue-800 font-bold text-sm">Overall Budget Usage</p>
+                <p className="text-gray-700 font-bold text-sm">Overall Budget Usage</p>
                 <span className={`text-sm font-black ${oc.textClass}`}>{rawPct}%</span>
               </div>
-              <div className="w-full bg-blue-50 rounded-full h-3 overflow-hidden">
+              <div className="w-full bg-gray-100 rounded-full h-3 overflow-hidden">
                 <div className={`h-3 rounded-full transition-all duration-700 ${oc.barClass}`} style={{ width: `${Math.min(rawPct, 100)}%` }} />
               </div>
               <div className="flex justify-between mt-1.5">
-                <span className="text-blue-300 text-xs">{fmtPrimary(summary.totalSpentUsd, pref)} spent</span>
+                <span className="text-gray-400 text-xs">{fmtPrimary(summary.totalSpentUsd, pref)} spent</span>
                 <span className={`text-xs font-semibold ${oc.textClass}`}>
                   {rawPct > 100
                     ? `${fmtPrimary(summary.totalSpentUsd - summary.totalLimitUsd, pref)} over budget`
@@ -432,7 +438,7 @@ export default function BudgetsPage() {
             {(["ALL", "DAILY", "WEEKLY", "MONTHLY"] as const).map(p => (
               <button key={p} onClick={() => setPeriodFilter(p)}
                 className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all
-                  ${periodFilter === p ? "bg-blue-600 text-white shadow-md" : "bg-white border border-blue-100 text-blue-400 hover:bg-blue-50"}`}>
+                  ${periodFilter === p ? "bg-blue-600 text-white shadow-md" : "bg-white border border-gray-200 text-gray-500 hover:bg-gray-50"}`}>
                 {p === "ALL"
                   ? `All (${statuses.length})`
                   : `${p.charAt(0) + p.slice(1).toLowerCase()} (${statuses.filter(s => s.period === p).length})`}
@@ -453,25 +459,25 @@ export default function BudgetsPage() {
         {loading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
             {[...Array(6)].map((_, i) => (
-              <div key={i} className="bg-white rounded-2xl border border-blue-100 p-5 animate-pulse space-y-3">
+              <div key={i} className="bg-white rounded-2xl border border-gray-100 p-5 animate-pulse space-y-3">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-blue-100" />
-                  <div className="space-y-1.5 flex-1"><div className="h-4 bg-blue-100 rounded w-24" /><div className="h-3 bg-blue-50 rounded w-16" /></div>
+                  <div className="w-10 h-10 rounded-xl bg-gray-100" />
+                  <div className="space-y-1.5 flex-1"><div className="h-4 bg-gray-100 rounded w-24" /><div className="h-3 bg-gray-50 rounded w-16" /></div>
                 </div>
-                <div className="h-6 bg-blue-50 rounded w-20" />
-                <div className="h-2 bg-blue-100 rounded-full w-full" />
+                <div className="h-6 bg-gray-50 rounded w-20" />
+                <div className="h-2 bg-gray-100 rounded-full w-full" />
               </div>
             ))}
           </div>
         ) : filtered.length === 0 ? (
-          <div className="bg-white rounded-2xl border border-blue-100 shadow-sm text-center py-16 sm:py-20 px-6">
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm text-center py-16 sm:py-20 px-6">
             <div className="w-16 h-16 rounded-2xl bg-blue-50 flex items-center justify-center mx-auto mb-4">
-              <Wallet size={30} className="text-blue-300" strokeWidth={1.5} />
+              <Wallet size={30} className="text-blue-400" strokeWidth={1.5} />
             </div>
-            <p className="text-blue-800 font-bold text-lg sm:text-xl">
+            <p className="text-gray-800 font-bold text-lg sm:text-xl">
               {periodFilter !== "ALL" ? `No ${periodFilter.toLowerCase()} budgets` : "No budgets yet"}
             </p>
-            <p className="text-blue-400 text-sm mt-2">
+            <p className="text-gray-400 text-sm mt-2">
               {!canEdit ? "The group owner hasn't set any budgets yet." :
                periodFilter !== "ALL" ? "Try a different period filter or create one" : "Create your first budget to start tracking limits"}
             </p>

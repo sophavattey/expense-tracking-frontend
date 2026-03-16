@@ -24,7 +24,6 @@ export const groupService = {
       body: JSON.stringify(data),
     }),
 
-  /** Rename a group — owner only */
   rename: (groupId: string, data: UpdateGroupRequest) =>
     apiFetch<Group>(`/api/groups/${groupId}`, {
       method: "PATCH",

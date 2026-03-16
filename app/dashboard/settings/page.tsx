@@ -27,9 +27,9 @@ function Avatar({ user, size = "md" }: {
 /* ─── Info row ────────────────────────────────────────────────────── */
 function InfoRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-center justify-between py-3 border-b border-blue-50 last:border-0">
-      <span className="text-blue-400 text-xs font-bold uppercase tracking-widest">{label}</span>
-      <span className="text-blue-800 text-sm font-semibold">{value}</span>
+    <div className="flex items-center justify-between py-3 border-b border-gray-50 last:border-0">
+      <span className="text-gray-400 text-xs font-bold uppercase tracking-widest">{label}</span>
+      <span className="text-gray-800 text-sm font-semibold">{value}</span>
     </div>
   );
 }
@@ -49,22 +49,22 @@ function CurrencyRow({ current, onChange }: {
   };
 
   return (
-    <div className="flex items-center justify-between py-3 border-b border-blue-50 last:border-0">
-      <span className="text-blue-400 text-xs font-bold uppercase tracking-widest">Primary Currency</span>
+    <div className="flex items-center justify-between py-3 border-b border-gray-50 last:border-0">
+      <span className="text-gray-400 text-xs font-bold uppercase tracking-widest">Primary Currency</span>
       <div className="flex items-center gap-1.5">
         {saving && (
-          <svg className="w-3.5 h-3.5 animate-spin text-blue-400" fill="none" viewBox="0 0 24 24">
+          <svg className="w-3.5 h-3.5 animate-spin text-gray-400" fill="none" viewBox="0 0 24 24">
             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
           </svg>
         )}
-        <div className="flex bg-blue-50 border border-blue-100 rounded-lg p-0.5">
+        <div className="flex bg-gray-100 border border-gray-200 rounded-lg p-0.5">
           {(["USD", "KHR"] as const).map(c => (
             <button key={c} onClick={() => handleSwitch(c)} disabled={saving}
               className={`px-3 py-1 rounded-md text-xs font-bold transition-all ${
                 current === c
                   ? "bg-blue-600 text-white shadow-sm"
-                  : "text-blue-400 hover:text-blue-600"
+                  : "text-gray-500 hover:text-gray-700"
               }`}>
               {c === "USD" ? "USD $" : "KHR ៛"}
             </button>
@@ -84,12 +84,12 @@ function Section({ title, Icon, children, iconClass = "text-blue-500", bgClass =
   bgClass?: string;
 }) {
   return (
-    <div className="bg-white rounded-2xl border border-blue-100 shadow-sm overflow-hidden">
-      <div className="px-5 py-4 border-b border-blue-50 flex items-center gap-2.5">
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+      <div className="px-5 py-4 border-b border-gray-50 flex items-center gap-2.5">
         <div className={`w-8 h-8 rounded-xl ${bgClass} flex items-center justify-center shrink-0`}>
           <Icon size={16} className={iconClass} strokeWidth={2} />
         </div>
-        <h2 className="text-blue-800 font-black text-base font-['Sora',sans-serif]">{title}</h2>
+        <h2 className="text-gray-800 font-black text-base font-['Sora',sans-serif]">{title}</h2>
       </div>
       <div className="px-5 py-1">{children}</div>
     </div>
@@ -105,7 +105,7 @@ export default function SettingsPage() {
   if (!user) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="w-8 h-8 rounded-full border-4 border-blue-200 border-t-blue-600 animate-spin" />
+        <div className="w-8 h-8 rounded-full border-4 border-gray-200 border-t-blue-600 animate-spin" />
       </div>
     );
   }
@@ -144,7 +144,7 @@ export default function SettingsPage() {
           <div className="w-8 h-8 rounded-xl bg-red-50 flex items-center justify-center shrink-0">
             <AlertTriangle size={16} className="text-red-400" strokeWidth={2} />
           </div>
-          <h2 className="text-red-600 font-black text-base font-['Sora',sans-serif]">Account Actions</h2>
+          <h2 className="text-red-500 font-black text-base font-['Sora',sans-serif]">Account Actions</h2>
         </div>
         <div className="px-5 py-4 space-y-3">
           <button onClick={() => logout()}
@@ -155,7 +155,7 @@ export default function SettingsPage() {
             </svg>
             Sign Out
           </button>
-          <p className="text-blue-300 text-[10px] text-center">
+          <p className="text-gray-300 text-[10px] text-center">
             Account deletion and data export coming in a future update.
           </p>
         </div>

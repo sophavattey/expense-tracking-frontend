@@ -5,37 +5,34 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import {
-  Wallet, BarChart3, ScanLine, Receipt, Users, Shield,
+  Wallet, BarChart3, Receipt, Users, Shield,
   Eye, EyeOff, AlertCircle, CheckCircle2, ArrowRight
 } from "lucide-react";
 
-// ─── Password strength meter ──────────────────────────────────────
 function PasswordStrength({ password }: { password: string }) {
   const checks = [
-    { label: "8+ characters",    pass: password.length >= 8 },
-    { label: "Uppercase letter", pass: /[A-Z]/.test(password) },
-    { label: "Number",           pass: /[0-9]/.test(password) },
-    { label: "Special character",pass: /[^A-Za-z0-9]/.test(password) },
+    { label: "8+ characters",     pass: password.length >= 8 },
+    { label: "Uppercase letter",  pass: /[A-Z]/.test(password) },
+    { label: "Number",            pass: /[0-9]/.test(password) },
+    { label: "Special character", pass: /[^A-Za-z0-9]/.test(password) },
   ];
   const score = checks.filter((c) => c.pass).length;
-  const levels    = ["", "Weak",    "Fair",       "Good",       "Strong"     ];
-  const colors    = ["", "bg-red-400", "bg-yellow-400", "bg-blue-400", "bg-green-500"];
-  const textColors= ["", "text-red-500","text-yellow-500","text-blue-500","text-green-600"];
+  const levels     = ["", "Weak",      "Fair",          "Good",          "Strong"      ];
+  const colors     = ["", "bg-red-400", "bg-yellow-400", "bg-blue-400",   "bg-green-500"];
+  const textColors = ["", "text-red-500","text-yellow-500","text-blue-500","text-green-600"];
   if (!password) return null;
   return (
     <div className="mt-2.5 space-y-2">
       <div className="flex gap-1.5">
         {[1, 2, 3, 4].map((i) => (
-          <div key={i} className={`h-1 flex-1 rounded-full transition-all duration-300 ${i <= score ? colors[score] : "bg-blue-100"}`} />
+          <div key={i} className={`h-1 flex-1 rounded-full transition-all duration-300 ${i <= score ? colors[score] : "bg-gray-200"}`} />
         ))}
       </div>
       <div className="flex items-center justify-between">
         <div className="flex flex-wrap gap-x-3 gap-y-1">
           {checks.map((c) => (
-            <span key={c.label} className={`text-[10px] flex items-center gap-1 transition-colors ${c.pass ? "text-green-500" : "text-blue-300"}`}>
-              {c.pass
-                ? <CheckCircle2 size={10} />
-                : <span className="text-[8px]">·</span>}
+            <span key={c.label} className={`text-[10px] flex items-center gap-1 transition-colors ${c.pass ? "text-green-500" : "text-gray-400"}`}>
+              {c.pass ? <CheckCircle2 size={10} /> : <span className="text-[8px]">·</span>}
               {c.label}
             </span>
           ))}
@@ -46,20 +43,18 @@ function PasswordStrength({ password }: { password: string }) {
   );
 }
 
-// ─── Password input with toggle ───────────────────────────────────
 function PasswordInput({ value, onChange, placeholder, id }: {
   value: string; onChange: (v: string) => void; placeholder?: string; id?: string;
 }) {
   const [show, setShow] = useState(false);
   return (
     <div className="relative">
-      <input
-        id={id} type={show ? "text" : "password"} value={value}
+      <input id={id} type={show ? "text" : "password"} value={value}
         onChange={(e) => onChange(e.target.value)} placeholder={placeholder || "••••••••"}
-        className="w-full px-4 py-3 pr-11 rounded-xl border border-blue-100 bg-blue-50/50 text-blue-800 placeholder-blue-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+        className="w-full px-4 py-3 pr-11 rounded-xl border border-gray-200 bg-gray-50 text-gray-800 placeholder-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
       />
       <button type="button" onClick={() => setShow(!show)}
-        className="absolute right-3 top-1/2 -translate-y-1/2 text-blue-300 hover:text-blue-500 transition-colors"
+        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
         aria-label={show ? "Hide password" : "Show password"}>
         {show ? <EyeOff size={16} /> : <Eye size={16} />}
       </button>
@@ -67,7 +62,6 @@ function PasswordInput({ value, onChange, placeholder, id }: {
   );
 }
 
-// ─── Left panel feature row ───────────────────────────────────────
 function FeatureItem({ icon: Icon, text }: { icon: React.ElementType; text: string }) {
   return (
     <div className="flex items-center gap-3">
@@ -90,14 +84,13 @@ function MiniChart() {
   );
 }
 
-// ─── Signup Page ──────────────────────────────────────────────────
 export default function SignupPage() {
-  const [name, setName]         = useState("");
-  const [email, setEmail]       = useState("");
+  const [name,     setName]     = useState("");
+  const [email,    setEmail]    = useState("");
   const [password, setPassword] = useState("");
-  const [currency, setCurrency] = useState<"USD" | "KHR">("USD");
-  const [agreed, setAgreed]     = useState(false);
-  const [step, setStep]         = useState<"form" | "success">("form");
+
+  const [agreed,   setAgreed]   = useState(false);
+  const [step,     setStep]     = useState<"form" | "success">("form");
 
   const { register, loginWithGoogle, loading, error, clearError } = useAuth();
   const router = useRouter();
@@ -106,18 +99,10 @@ export default function SignupPage() {
     e.preventDefault();
     if (!agreed) return;
     clearError();
-    try {
-      await register(name, email, password, currency);
-      setStep("success");
-    } catch {
-      // error displayed via AuthContext
-    }
+    try { await register(name, email, password); setStep("success"); } catch {}
   };
 
-  const handleGoogle = () => {
-    clearError();
-    loginWithGoogle();
-  };
+  const handleGoogle = () => { clearError(); loginWithGoogle(); };
 
   return (
     <>
@@ -143,13 +128,13 @@ export default function SignupPage() {
           animation: shimmer 3s linear infinite;
         }
         .shimmer-btn:hover { animation-play-state: paused; }
-        .pop-in { animation: pop-in 0.5s cubic-bezier(0.34,1.56,0.64,1) both; }
+        .pop-in   { animation: pop-in 0.5s cubic-bezier(0.34,1.56,0.64,1) both; }
         .float-pill { animation: float-a 5s ease-in-out infinite; }
       `}</style>
 
       <div className="min-h-screen flex">
 
-        {/* ── Left panel ────────────────────────────────────────────── */}
+        {/* ── Left panel — untouched blue branding ── */}
         <div className="hidden lg:flex lg:w-[42%] xl:w-[38%] relative bg-blue-600 flex-col overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-br from-blue-800 via-blue-600 to-blue-500" />
           <div className="absolute top-0 right-0 w-96 h-96 bg-blue-400/30 rounded-full blur-3xl translate-x-1/3 -translate-y-1/3" />
@@ -158,7 +143,6 @@ export default function SignupPage() {
             style={{ backgroundImage: "linear-gradient(white 1px, transparent 1px), linear-gradient(90deg, white 1px, transparent 1px)", backgroundSize: "40px 40px" }} />
           <MiniChart />
 
-          {/* Logo */}
           <div className="relative z-10 p-10">
             <Link href="/" className="inline-flex items-center gap-2.5">
               <div className="w-9 h-9 rounded-xl bg-white/20 backdrop-blur flex items-center justify-center border border-white/30">
@@ -170,7 +154,6 @@ export default function SignupPage() {
             </Link>
           </div>
 
-          {/* Content */}
           <div className="relative z-10 flex-1 flex flex-col justify-center px-10 pb-16">
             <div className="mb-8">
               <div className="inline-flex items-center gap-2 bg-white/15 border border-white/20 text-blue-100 text-xs font-bold uppercase tracking-widest px-3 py-1.5 rounded-full mb-4">
@@ -184,16 +167,12 @@ export default function SignupPage() {
                 Take 30 seconds to set up your account and start tracking your money today.
               </p>
             </div>
-
             <div className="space-y-3.5">
-              <FeatureItem icon={ScanLine}  text="Scan KHQR receipts in seconds" />
-              <FeatureItem icon={Receipt}   text="Track KHR & USD simultaneously" />
-              <FeatureItem icon={BarChart3} text="Set budgets per category, get alerts" />
+              <FeatureItem icon={Receipt}   text="Track every expense by category" />
+              <FeatureItem icon={BarChart3} text="Set budgets and get overspend alerts" />
               <FeatureItem icon={Users}     text="Share finances with partner or family" />
               <FeatureItem icon={Shield}    text="Bank-grade security, always private" />
             </div>
-
-            {/* Social proof — Lucide Users icon instead of emoji avatars */}
             <div className="mt-10 inline-flex items-center gap-3 bg-white/10 border border-white/20 rounded-2xl px-4 py-3 float-pill w-fit">
               <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
                 <Users size={18} className="text-white" strokeWidth={1.8} />
@@ -204,23 +183,20 @@ export default function SignupPage() {
               </div>
             </div>
           </div>
-
-          {/* Bottom spacer — language switcher removed */}
           <div className="relative z-10 p-10" />
         </div>
 
-        {/* ── Right panel ───────────────────────────────────────────── */}
-        <div className="flex-1 flex items-center justify-center px-6 py-10 bg-blue-50 overflow-y-auto">
+        {/* ── Right panel — gray palette ── */}
+        <div className="flex-1 flex items-center justify-center px-6 py-10 bg-gray-50 overflow-y-auto">
           <div className="w-full max-w-[440px]">
 
             {step === "success" ? (
-              /* ── Success state ── */
               <div className="text-center pop-in">
                 <div className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-6 shadow-lg shadow-green-200">
                   <CheckCircle2 size={40} className="text-green-500" strokeWidth={1.8} />
                 </div>
-                <h2 className="text-3xl font-black text-blue-800 font-['Sora',sans-serif] mb-2">You're in!</h2>
-                <p className="text-blue-400 mb-8">
+                <h2 className="text-3xl font-black text-gray-800 font-['Sora',sans-serif] mb-2">You're in!</h2>
+                <p className="text-gray-400 mb-8">
                   Welcome to FinSet, <strong className="text-blue-600">{name || "friend"}</strong>!<br />
                   Your account has been created successfully.
                 </p>
@@ -237,12 +213,12 @@ export default function SignupPage() {
                   <div className="w-8 h-8 rounded-xl bg-blue-600 flex items-center justify-center">
                     <Wallet size={15} className="text-white" strokeWidth={2} />
                   </div>
-                  <span className="text-blue-800 font-black text-xl font-['Sora',sans-serif]">FinSet</span>
+                  <span className="text-gray-800 font-black text-xl font-['Sora',sans-serif]">FinSet</span>
                 </div>
 
                 <div className="form-in mb-6">
-                  <h1 className="text-3xl font-black text-blue-800 font-['Sora',sans-serif] mb-1">Create your account</h1>
-                  <p className="text-blue-400 text-sm">
+                  <h1 className="text-3xl font-black text-gray-800 font-['Sora',sans-serif] mb-1">Create your account</h1>
+                  <p className="text-gray-400 text-sm">
                     Already have one?{" "}
                     <Link href="/login" className="text-blue-600 font-semibold hover:text-blue-700 underline underline-offset-2">Log in</Link>
                   </p>
@@ -258,18 +234,18 @@ export default function SignupPage() {
                 {/* Google */}
                 <div className="form-in-1 mb-5">
                   <button onClick={handleGoogle} disabled={loading}
-                    className="w-full flex items-center justify-center gap-3 bg-white border border-blue-200 hover:border-blue-300 text-blue-700 font-semibold text-sm py-3.5 rounded-xl transition-all hover:shadow-md hover:shadow-blue-100 active:scale-[0.98] disabled:opacity-60 disabled:cursor-wait">
+                    className="w-full flex items-center justify-center gap-3 bg-white border border-gray-200 hover:border-gray-300 text-gray-700 font-semibold text-sm py-3.5 rounded-xl transition-all hover:shadow-md active:scale-[0.98] disabled:opacity-60 disabled:cursor-wait">
                     {loading ? (
-                      <svg className="w-5 h-5 animate-spin text-blue-400" fill="none" viewBox="0 0 24 24">
+                      <svg className="w-5 h-5 animate-spin text-gray-400" fill="none" viewBox="0 0 24 24">
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                       </svg>
                     ) : (
                       <svg className="w-5 h-5" viewBox="0 0 24 24">
-                        <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
-                        <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
-                        <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
-                        <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
+                        <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+                        <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                        <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+                        <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
                       </svg>
                     )}
                     {loading ? "Connecting…" : "Sign up with Google"}
@@ -277,70 +253,36 @@ export default function SignupPage() {
                 </div>
 
                 <div className="form-in-2 relative flex items-center gap-3 mb-5">
-                  <div className="flex-1 h-px bg-blue-100" />
-                  <span className="text-blue-300 text-xs font-medium uppercase tracking-widest">or</span>
-                  <div className="flex-1 h-px bg-blue-100" />
+                  <div className="flex-1 h-px bg-gray-200" />
+                  <span className="text-gray-400 text-xs font-medium uppercase tracking-widest">or</span>
+                  <div className="flex-1 h-px bg-gray-200" />
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-4">
-                  {/* Name */}
                   <div className="form-in-3">
-                    <label htmlFor="name" className="block text-blue-700 text-xs font-bold uppercase tracking-widest mb-1.5">Full Name</label>
+                    <label htmlFor="name" className="block text-gray-500 text-xs font-bold uppercase tracking-widest mb-1.5">Full Name</label>
                     <input id="name" type="text" value={name} onChange={(e) => setName(e.target.value)}
                       placeholder="Sophea Chan" required autoComplete="name"
-                      className="w-full px-4 py-3 rounded-xl border border-blue-100 bg-blue-50/50 text-blue-800 placeholder-blue-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all" />
+                      className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 text-gray-800 placeholder-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all" />
                   </div>
 
-                  {/* Email */}
                   <div className="form-in-4">
-                    <label htmlFor="email" className="block text-blue-700 text-xs font-bold uppercase tracking-widest mb-1.5">Email Address</label>
+                    <label htmlFor="email" className="block text-gray-500 text-xs font-bold uppercase tracking-widest mb-1.5">Email Address</label>
                     <input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)}
                       placeholder="you@example.com" required autoComplete="email"
-                      className="w-full px-4 py-3 rounded-xl border border-blue-100 bg-blue-50/50 text-blue-800 placeholder-blue-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all" />
+                      className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 text-gray-800 placeholder-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all" />
                   </div>
 
-                  {/* Password */}
                   <div className="form-in-4">
-                    <label htmlFor="password" className="block text-blue-700 text-xs font-bold uppercase tracking-widest mb-1.5">Password</label>
+                    <label htmlFor="password" className="block text-gray-500 text-xs font-bold uppercase tracking-widest mb-1.5">Password</label>
                     <PasswordInput id="password" value={password} onChange={setPassword} placeholder="Create a strong password" />
                     <PasswordStrength password={password} />
                   </div>
 
-                  {/* Currency picker — symbol only, no flag emoji */}
-                  <div className="form-in-5">
-                    <label className="block text-blue-700 text-xs font-bold uppercase tracking-widest mb-2">Primary Currency</label>
-                    <div className="grid grid-cols-2 gap-3">
-                      {(["USD", "KHR"] as const).map((c) => (
-                        <button key={c} type="button" onClick={() => setCurrency(c)}
-                          className={`flex items-center gap-3 px-4 py-3 rounded-xl border-2 text-sm font-semibold transition-all ${
-                            currency === c
-                              ? "border-blue-500 bg-blue-600 text-white shadow-lg shadow-blue-600/20"
-                              : "border-blue-100 bg-white text-blue-600 hover:border-blue-200"
-                          }`}>
-                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 font-black text-base
-                            ${currency === c ? "bg-white/20 text-white" : "bg-blue-50 text-blue-600"}`}>
-                            {c === "USD" ? "$" : "៛"}
-                          </div>
-                          <div className="text-left">
-                            <p className={`font-bold text-sm ${currency === c ? "text-white" : "text-blue-800"}`}>{c}</p>
-                            <p className={`text-[10px] ${currency === c ? "text-blue-200" : "text-blue-400"}`}>
-                              {c === "USD" ? "US Dollar" : "Cambodian Riel"}
-                            </p>
-                          </div>
-                          {currency === c && <CheckCircle2 size={15} className="ml-auto text-white shrink-0" />}
-                        </button>
-                      ))}
-                    </div>
-                    <p className="text-blue-300 text-[10px] mt-1.5">
-                      You can use both KHR and USD at any time. This is just your default view.
-                    </p>
-                  </div>
-
-                  {/* Terms */}
-                  <div className="form-in-6 flex items-start gap-2.5">
+                  <div className="form-in-5 flex items-start gap-2.5">
                     <input id="agree" type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)}
-                      className="w-4 h-4 mt-0.5 rounded border-blue-200 text-blue-600 focus:ring-blue-500 accent-blue-600 shrink-0" />
-                    <label htmlFor="agree" className="text-blue-500 text-sm leading-relaxed cursor-pointer select-none">
+                      className="w-4 h-4 mt-0.5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 accent-blue-600 shrink-0" />
+                    <label htmlFor="agree" className="text-gray-500 text-sm leading-relaxed cursor-pointer select-none">
                       I agree to FinSet's{" "}
                       <a href="#" className="text-blue-600 font-semibold underline underline-offset-2 hover:text-blue-700">Terms of Service</a>{" "}
                       and{" "}
@@ -348,8 +290,7 @@ export default function SignupPage() {
                     </label>
                   </div>
 
-                  {/* Submit */}
-                  <div className="form-in-7 pt-1">
+                  <div className="form-in-6 pt-1">
                     <button type="submit" disabled={loading || !agreed}
                       className="w-full shimmer-btn text-white font-bold py-3.5 rounded-xl transition-all hover:shadow-xl hover:shadow-blue-600/30 hover:-translate-y-0.5 active:scale-[0.98] active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0">
                       {loading ? (
@@ -362,16 +303,14 @@ export default function SignupPage() {
                         </span>
                       ) : (
                         <span className="flex items-center justify-center gap-2">
-                          Create Free Account
-                          <ArrowRight size={16} />
+                          Create Free Account <ArrowRight size={16} />
                         </span>
                       )}
                     </button>
                   </div>
                 </form>
 
-                {/* Trust row */}
-                <div className="mt-5 flex items-center justify-center gap-4 text-blue-300 text-xs">
+                <div className="mt-5 flex items-center justify-center gap-4 text-gray-400 text-xs">
                   {[
                     { icon: CheckCircle2, label: "Free forever"    },
                     { icon: Shield,       label: "No credit card"  },

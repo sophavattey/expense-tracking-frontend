@@ -49,19 +49,17 @@ export function useGroups() {
 
   const leaveGroup = useCallback(async (groupId: string) => {
     await groupService.leave(groupId);
-    // If we're currently in this group, switch back to personal
     if (activeContext.groupId === groupId) switchToPersonal();
     await refetch();
   }, [activeContext.groupId, switchToPersonal, refetch]);
 
   const removeMember = useCallback(async (groupId: string, targetUserId: string) => {
     await groupService.removeMember(groupId, targetUserId);
-    await refetch();
-  }, [refetch]);
+    // intentionally no refetch() here — caller (onUpdate) handles refresh
+  }, []);
 
   const dissolveGroup = useCallback(async (groupId: string) => {
     await groupService.dissolve(groupId);
-    // If we were in this group, drop back to personal
     if (activeContext.groupId === groupId) switchToPersonal();
     await refetch();
   }, [activeContext.groupId, switchToPersonal, refetch]);

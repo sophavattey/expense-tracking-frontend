@@ -1,5 +1,7 @@
 "use client";
 
+import { Lightbulb } from "lucide-react";
+
 interface Category { icon: string; name: string; color: string }
 
 export function PreviewCard({
@@ -12,7 +14,7 @@ export function PreviewCard({
 }) {
   return (
     <>
-      <div className="bg-gradient-to-br from-blue-800 via-blue-700 to-blue-600 rounded-2xl p-5 shadow-xl shadow-blue-600/20 relative overflow-hidden">
+      <div className="bg-linear-to-br from-blue-800 via-blue-700 to-blue-600 rounded-2xl p-5 shadow-xl shadow-blue-600/20 relative overflow-hidden">
         <div className="absolute inset-0 opacity-[0.04]"
           style={{ backgroundImage: "linear-gradient(white 1px,transparent 1px),linear-gradient(90deg,white 1px,transparent 1px)", backgroundSize: "24px 24px" }} />
         <div className="absolute -right-8 -top-8 w-32 h-32 bg-blue-400/20 rounded-full blur-2xl" />
@@ -63,8 +65,11 @@ export function PreviewCard({
       </div>
 
       {/* Tips — desktop only */}
-      <div className="hidden xl:block bg-white rounded-2xl border border-blue-100 p-5 shadow-sm">
-        <p className="text-blue-800 text-sm font-bold mb-3">💡 Tips</p>
+      <div className="hidden xl:block bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
+        <div className="flex items-center gap-2 mb-3">
+          <Lightbulb size={15} strokeWidth={2} className="text-amber-400" />
+          <p className="text-gray-700 text-sm font-bold">Tips</p>
+        </div>
         <ul className="space-y-2">
           {[
             "Amounts are stored in the currency you select",
@@ -72,8 +77,8 @@ export function PreviewCard({
             "Use notes for any extra context",
           ].map((tip, i) => (
             <li key={i} className="flex items-start gap-2">
-              <div className="w-1.5 h-1.5 rounded-full bg-blue-300 mt-1.5 shrink-0" />
-              <p className="text-blue-400 text-xs leading-snug">{tip}</p>
+              <div className="w-1.5 h-1.5 rounded-full bg-gray-300 mt-1.5 shrink-0" />
+              <p className="text-gray-400 text-xs leading-snug">{tip}</p>
             </li>
           ))}
         </ul>

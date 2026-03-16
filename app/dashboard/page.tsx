@@ -129,7 +129,7 @@ function DonutChart({ slices, totalUsd, pref }: { slices: DonutSlice[]; totalUsd
   if (slices.length === 0) {
     return (
       <div className="flex items-center justify-center" style={{ width: 200, height: 200 }}>
-        <p className="text-blue-200 text-sm">No data this month</p>
+        <p className="text-gray-400 text-sm">No data this month</p>
       </div>
     );
   }
@@ -151,14 +151,14 @@ function DonutChart({ slices, totalUsd, pref }: { slices: DonutSlice[]; totalUsd
         <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
           {hovered !== null ? (
             <>
-              <p className="text-blue-800 font-black text-2xl leading-none">{slices[hovered].pct}%</p>
-              <p className="text-blue-400 text-xs text-center leading-tight mt-1 max-w-[72px]">{slices[hovered].cat}</p>
+              <p className="text-gray-800 font-black text-2xl leading-none">{slices[hovered].pct}%</p>
+              <p className="text-gray-500 text-xs text-center leading-tight mt-1 max-w-[72px]">{slices[hovered].cat}</p>
             </>
           ) : (
             <>
-              <p className="text-blue-400 text-xs uppercase tracking-wider font-semibold">Total</p>
-              <p className="text-blue-800 font-black text-xl leading-none mt-0.5">{fmtPrimary(totalUsd, pref)}</p>
-              <p className="text-blue-300 text-[10px] mt-0.5">{fmtSecondary(totalUsd, pref)}</p>
+              <p className="text-gray-500 text-xs uppercase tracking-wider font-semibold">Total</p>
+              <p className="text-gray-800 font-black text-xl leading-none mt-0.5">{fmtPrimary(totalUsd, pref)}</p>
+              <p className="text-gray-400 text-[10px] mt-0.5">{fmtSecondary(totalUsd, pref)}</p>
             </>
           )}
         </div>
@@ -201,7 +201,7 @@ function SpendingChart({ data, pref, selectedIdx, onSelect }: {
                 style={{ height: `${h}%`, minHeight: d.amount > 0 ? "4px" : "0px" }} />
             </div>
             <span className={`text-[8px] font-medium leading-none mt-1
-              ${isSel ? "text-blue-600 font-black" : isHov ? "text-blue-500" : "text-blue-300"}`}>
+              ${isSel ? "text-blue-600 font-black" : isHov ? "text-gray-600" : "text-gray-400"}`}>
               {d.label}
             </span>
           </div>
@@ -226,14 +226,14 @@ function StatCard({ label, value, sub, subDim, change, positive, Icon, iconColor
       style={{ transition: `opacity 0.5s ease ${delay}ms, transform 0.5s ease ${delay}ms, box-shadow 0.3s` }}>
       <div className={`absolute -top-6 -right-6 w-20 h-20 ${accent} rounded-full blur-2xl opacity-10 group-hover:opacity-20 transition-opacity`} />
       <div className="flex items-start justify-between mb-3">
-        <p className="text-blue-400 text-xs font-bold uppercase tracking-widest leading-tight">{label}</p>
+        <p className="text-gray-400 text-xs font-bold uppercase tracking-widest leading-tight">{label}</p>
         <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${iconColor}`}>
           <Icon size={18} strokeWidth={2} />
         </div>
       </div>
-      <p className="text-blue-800 font-black text-2xl font-['Sora',sans-serif] leading-none mb-0.5 truncate">{value}</p>
-      {subDim && <p className="text-blue-300 text-xs mb-1">{subDim}</p>}
-      <p className="text-blue-300 text-xs mb-3">{sub}</p>
+      <p className="text-gray-800 font-black text-2xl font-['Sora',sans-serif] leading-none mb-0.5 truncate">{value}</p>
+      {subDim && <p className="text-gray-400 text-xs mb-1">{subDim}</p>}
+      <p className="text-gray-400 text-xs mb-3">{sub}</p>
       <div className={`inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full ${positive ? "bg-green-50 text-green-600" : "bg-red-50 text-red-500"}`}>
         {positive ? "↑" : "↓"} {change}
       </div>
@@ -256,7 +256,7 @@ function BudgetBar({ status, pref }: { status: BudgetStatus; pref: "USD" | "KHR"
         <div className="flex items-center gap-2">
           <span className="text-base">{catIcon}</span>
           <div>
-            <span className="text-blue-700 text-sm font-semibold">{catName}</span>
+            <span className="text-gray-700 text-sm font-semibold">{catName}</span>
             {/* FIX: show period badge for non-monthly budgets */}
             {status.period !== "MONTHLY" && (
               <span className={`ml-1.5 text-[9px] font-bold px-1.5 py-0.5 rounded-md
@@ -269,7 +269,7 @@ function BudgetBar({ status, pref }: { status: BudgetStatus; pref: "USD" | "KHR"
         <div className="flex items-center gap-1.5">
           <color.Icon size={12} strokeWidth={2.5} className={color.iconClass} />
           <span className={`text-sm font-bold ${color.textClass}`}>{fmtPrimary(status.spentUsd, pref)}</span>
-          <span className="text-blue-200 text-xs">/{fmtPrimary(status.limitUsd, pref)}</span>
+          <span className="text-gray-300 text-xs">/{fmtPrimary(status.limitUsd, pref)}</span>
         </div>
       </div>
       <div className="w-full bg-blue-50 rounded-full h-2">
@@ -325,13 +325,13 @@ function TxRow({ expense, delay, groupMembers }: {
         )}
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-blue-800 text-sm font-semibold truncate leading-tight">
+        <p className="text-gray-800 text-sm font-semibold truncate leading-tight">
           {expense.merchantName ?? expense.category.name}
         </p>
         <div className="flex items-center gap-2 mt-0.5">
-          <span className="text-blue-300 text-xs">{expense.category.name}</span>
-          <span className="text-blue-200 text-xs">·</span>
-          <span className="text-blue-300 text-xs truncate">{fmtDate(expense.date)}</span>
+          <span className="text-gray-400 text-xs">{expense.category.name}</span>
+          <span className="text-gray-300 text-xs">·</span>
+          <span className="text-gray-400 text-xs truncate">{fmtDate(expense.date)}</span>
           {author && <span className="text-indigo-400 text-xs">· {author.name.split(" ")[0]}</span>}
         </div>
       </div>
@@ -616,17 +616,17 @@ export default function DashboardPage() {
         <div className="xl:col-span-2 bg-white rounded-2xl p-6 border border-blue-100 shadow-sm card-in" style={{ animationDelay: "80ms" }}>
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-blue-400 text-xs font-bold uppercase tracking-widest">
+              <p className="text-gray-400 text-xs font-bold uppercase tracking-widest">
                 {isGroup ? "Group Spending" : "Monthly Spending"}
               </p>
               {chartLoading
                 ? <div className="h-9 w-32 bg-blue-50 rounded-xl animate-pulse mt-1" />
                 : <div className="mt-1">
-                    <p className="text-blue-800 font-black text-3xl font-['Sora',sans-serif]">
+                    <p className="text-gray-800 font-black text-3xl font-['Sora',sans-serif]">
                       {fmtPrimary(selChartAmt, pref)}
-                      <span className="text-blue-300 text-base font-normal ml-2">{selMonthLabel}</span>
+                      <span className="text-gray-400 text-base font-normal ml-2">{selMonthLabel}</span>
                     </p>
-                    <p className="text-blue-300 text-xs mt-0.5">{fmtSecondary(selChartAmt, pref)}</p>
+                    <p className="text-gray-400 text-xs mt-0.5">{fmtSecondary(selChartAmt, pref)}</p>
                   </div>
               }
             </div>
@@ -635,10 +635,10 @@ export default function DashboardPage() {
               <div className="flex items-center gap-1 bg-blue-50 border border-blue-100 rounded-xl px-1 py-1">
                 <button
                   onClick={() => { setSelYear(y => y - 1); setSelMonth(1); }}
-                  className="w-6 h-6 rounded-lg flex items-center justify-center text-blue-400 hover:text-blue-700 hover:bg-blue-100 transition-all">
+                  className="w-6 h-6 rounded-lg flex items-center justify-center text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-all">
                   <ChevronLeft size={13} strokeWidth={2.5} />
                 </button>
-                <span className="text-blue-700 text-xs font-bold px-1 min-w-[36px] text-center">{selYear}</span>
+                <span className="text-gray-700 text-xs font-bold px-1 min-w-[36px] text-center">{selYear}</span>
                 <button
                   onClick={() => { if (selYear < TODAY.getFullYear()) { setSelYear(y => y + 1); setSelMonth(1); } }}
                   disabled={selYear >= TODAY.getFullYear()}
@@ -658,12 +658,12 @@ export default function DashboardPage() {
             ? <div className="h-36 bg-blue-50 rounded-xl animate-pulse mt-4" />
             : <SpendingChart data={chartData} pref={pref} selectedIdx={selectedBarIdx} onSelect={handleBarSelect} />
           }
-          {!chartLoading && <p className="text-blue-200 text-[10px] mt-2 text-center">Click any bar to navigate to that month</p>}
+          {!chartLoading && <p className="text-gray-400 text-[10px] mt-2 text-center">Click any bar to navigate to that month</p>}
         </div>
 
         {/* ── BY CATEGORY ── */}
         <div className="bg-white rounded-2xl p-6 border border-blue-100 shadow-sm card-in" style={{ animationDelay: "120ms" }}>
-          <p className="text-blue-400 text-xs font-bold uppercase tracking-widest mb-4">By Category</p>
+          <p className="text-gray-400 text-xs font-bold uppercase tracking-widest mb-4">By Category</p>
           {chartLoading || summaryLoading
             ? <div className="flex items-center justify-center h-[200px]"><div className="w-32 h-32 rounded-full border-8 border-blue-100 animate-pulse" /></div>
             : <DonutChart slices={donutSlices} totalUsd={totalSpentUsd} pref={pref} />
@@ -680,17 +680,17 @@ export default function DashboardPage() {
               : donutSlices.slice(0, 5).map(d => (
                     <div key={d.cat} className="flex items-center gap-2.5">
                       <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: d.color }} />
-                      <span className="text-blue-500 text-xs flex-1 truncate">{d.cat}</span>
+                      <span className="text-gray-600 text-xs flex-1 truncate">{d.cat}</span>
                       <div className="text-right">
-                        <span className="text-blue-400 text-xs">{fmtPrimary(d.totalUsd, pref)}</span>
-                        <span className="text-blue-300 text-[10px] block">{fmtSecondary(d.totalUsd, pref)}</span>
+                        <span className="text-gray-500 text-xs">{fmtPrimary(d.totalUsd, pref)}</span>
+                        <span className="text-gray-400 text-[10px] block">{fmtSecondary(d.totalUsd, pref)}</span>
                       </div>
-                      <span className="text-blue-800 text-xs font-bold w-8 text-right">{d.pct}%</span>
+                      <span className="text-gray-700 text-xs font-bold w-8 text-right">{d.pct}%</span>
                     </div>
                   ))
             }
             {donutSlices.length > 5 && (
-              <p className="text-blue-200 text-xs pl-2 pt-1">+{donutSlices.length - 5} more categories</p>
+              <p className="text-gray-400 text-xs pl-2 pt-1">+{donutSlices.length - 5} more categories</p>
             )}
           </div>
         </div>
@@ -702,21 +702,21 @@ export default function DashboardPage() {
         <div className="xl:col-span-2 bg-white rounded-2xl p-6 border border-blue-100 shadow-sm card-in" style={{ animationDelay: "160ms" }}>
           <div className="flex items-center justify-between mb-4">
             <div>
-              <p className="text-blue-800 font-black text-lg font-['Sora',sans-serif]">
+              <p className="text-gray-800 font-black text-lg font-['Sora',sans-serif]">
                 {isPast ? "Transactions" : isGroup ? "Group Transactions" : "Recent Transactions"}
               </p>
               {(isPast || isGroup) && (
-                <p className="text-blue-300 text-xs mt-0.5">
+                <p className="text-gray-400 text-xs mt-0.5">
                   {isPast ? selMonthLabel : activeContext.groupName}
                 </p>
               )}
             </div>
-            <Link href="/dashboard/expenses" className="text-blue-500 text-sm font-semibold hover:text-blue-700 transition-colors">View all →</Link>
+            <Link href="/dashboard/expenses" className="text-gray-500 text-sm font-semibold hover:text-gray-700 transition-colors">View all →</Link>
           </div>
           <div className="flex gap-2 mb-4 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
             {txCats.slice(0, 8).map(cat => (
               <button key={cat} onClick={() => { setTxFilter(cat); setTxCount(5); }}
-                className={`shrink-0 px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all ${txFilter === cat ? "bg-blue-600 text-white shadow-md" : "bg-blue-50 text-blue-400 hover:bg-blue-100"}`}>
+                className={`shrink-0 px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all ${txFilter === cat ? "bg-blue-600 text-white shadow-md" : "bg-gray-100 text-gray-500 hover:bg-gray-200"}`}>
                 {cat}
               </button>
             ))}
@@ -732,11 +732,11 @@ export default function DashboardPage() {
               ))}
             </div>
           ) : filteredTx.length === 0 ? (
-            <div className="text-center py-10 text-blue-300">
+            <div className="text-center py-10 text-gray-400">
               <div className="w-12 h-12 rounded-2xl bg-blue-50 flex items-center justify-center mx-auto mb-3">
-                <Search size={22} className="text-blue-300" strokeWidth={1.75} />
+                <Search size={22} className="text-blue-400" strokeWidth={1.75} />
               </div>
-              <p className="text-sm">{isPast ? `No transactions in ${selMonthLabel}` : "No transactions here"}</p>
+              <p className="text-sm text-gray-500">{isPast ? `No transactions in ${selMonthLabel}` : "No transactions here"}</p>
             </div>
           ) : (
             <>
@@ -745,7 +745,7 @@ export default function DashboardPage() {
               ))}
               {txCount < totalFiltered && (
                 <button onClick={() => setTxCount(txCount + 4)}
-                  className="w-full mt-4 py-2.5 text-blue-500 text-sm font-semibold border border-blue-100 rounded-xl hover:bg-blue-50 transition-all">
+                  className="w-full mt-4 py-2.5 text-gray-500 text-sm font-semibold border border-gray-200 rounded-xl hover:bg-gray-50 transition-all">
                   Load more ({totalFiltered - txCount} remaining)
                 </button>
               )}
@@ -756,11 +756,11 @@ export default function DashboardPage() {
         <div className={`bg-white rounded-2xl p-6 border shadow-sm card-in flex flex-col ${overallColor.borderClass}`} style={{ animationDelay: "200ms" }}>
           <div className="flex items-center justify-between mb-5">
             <div>
-              <p className="text-blue-800 font-black text-lg font-['Sora',sans-serif]">Budget Progress</p>
-              {isPast && <p className="text-blue-300 text-xs mt-0.5">{selMonthLabel}</p>}
+              <p className="text-gray-800 font-black text-lg font-['Sora',sans-serif]">Budget Progress</p>
+              {isPast && <p className="text-gray-400 text-xs mt-0.5">{selMonthLabel}</p>}
               {isGroup && !isPast && <p className="text-indigo-400 text-xs mt-0.5">{activeContext.groupName}</p>}
             </div>
-            <Link href="/dashboard/budgets" className="text-blue-500 text-sm font-semibold hover:text-blue-700 transition-colors">Manage →</Link>
+            <Link href="/dashboard/budgets" className="text-gray-500 text-sm font-semibold hover:text-gray-700 transition-colors">Manage →</Link>
           </div>
 
           {budgetLoading ? (
@@ -775,17 +775,17 @@ export default function DashboardPage() {
           ) : isPast ? (
             <div className="flex-1 flex flex-col items-center justify-center py-6 text-center">
               <div className="w-12 h-12 rounded-2xl bg-blue-50 flex items-center justify-center mx-auto mb-3">
-                <Calendar size={22} className="text-blue-300" strokeWidth={1.75} />
+                <Calendar size={22} className="text-blue-400" strokeWidth={1.75} />
               </div>
-              <p className="text-blue-400 text-sm font-semibold">No budget history</p>
-              <p className="text-blue-300 text-xs mt-1 max-w-[180px]">Budget tracking is only available for the current period</p>
+              <p className="text-gray-500 text-sm font-semibold">No budget history</p>
+              <p className="text-gray-400 text-xs mt-1 max-w-[180px]">Budget tracking is only available for the current period</p>
             </div>
           ) : activeBudgetStatuses.length === 0 ? (
             <div className="flex-1 flex flex-col items-center justify-center py-6 text-center">
               <div className="w-12 h-12 rounded-2xl bg-blue-50 flex items-center justify-center mx-auto mb-3">
-                <Wallet size={22} className="text-blue-300" strokeWidth={1.75} />
+                <Wallet size={22} className="text-blue-400" strokeWidth={1.75} />
               </div>
-              <p className="text-blue-400 text-sm font-semibold">No budgets set yet</p>
+              <p className="text-gray-500 text-sm font-semibold">No budgets set yet</p>
               <Link href="/dashboard/budgets" className="mt-3 text-blue-600 text-xs font-bold hover:underline">
                 Create your first budget →
               </Link>
@@ -809,7 +809,7 @@ export default function DashboardPage() {
           {!budgetLoading && !isPast && budgetLimitUsd > 0 && (
             <div className="mt-5 pt-5 border-t border-blue-50">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-blue-500 text-sm font-semibold">Overall Budget</span>
+                <span className="text-gray-600 text-sm font-semibold">Overall Budget</span>
                 <span className={`text-sm font-bold ${overallColor.textClass}`}>{budgetRawPct}%</span>
               </div>
               <div className="w-full bg-blue-50 rounded-full h-2.5">
@@ -819,7 +819,7 @@ export default function DashboardPage() {
                 </div>
               </div>
               <div className="flex justify-between mt-1.5">
-                <span className="text-blue-300 text-xs">{fmtPrimary(budgetSpentUsd, pref)} spent</span>
+                <span className="text-gray-400 text-xs">{fmtPrimary(budgetSpentUsd, pref)} spent</span>
                 <span className={`text-xs font-semibold ${overallColor.textClass}`}>
                   {budgetRawPct > 100
                     ? `${fmtPrimary(budgetSpentUsd - budgetLimitUsd, pref)} over`
@@ -837,9 +837,9 @@ export default function DashboardPage() {
               </div>
               <div className="flex-1">
                 <p className="text-white text-sm font-bold">Manage Categories</p>
-                <p className="text-blue-300 text-xs mt-0.5">Organize your spending</p>
+                <p className="text-white text-xs mt-0.5">Organize your spending</p>
               </div>
-              <svg className="w-5 h-5 text-blue-300 group-hover:translate-x-0.5 transition-transform shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="w-5 h-5 text-gray-300 group-hover:translate-x-0.5 transition-transform shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7l5 5m0 0l-5 5m5-5H6" />
               </svg>
             </Link>
