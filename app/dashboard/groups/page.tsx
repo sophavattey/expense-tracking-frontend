@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   Users, Plus, LogIn, Check, Crown,
   ChevronRight, X, ArrowRightLeft, Wallet, BarChart3,
@@ -78,50 +78,127 @@ function CreateGroupModal({ onClose, onCreate }: { onClose: () => void; onCreate
   );
 }
 
-/* ── Join modal ── */
-function JoinGroupModal({ onClose, onJoin }: { onClose: () => void; onJoin: (code: string) => Promise<Group> }) {
-  const [code, setCode] = useState("");
+/* ── Join modal (enter code → confirm dialog) ── */
+function JoinGroupModal({ onClose, onJoin, initialCode }: {
+  onClose: () => void;
+  onJoin: (code: string) => Promise<Group>;
+  initialCode?: string; // when set, skip straight to confirm step
+}) {
+  const [step,   setStep]   = useState<"code" | "confirm">(initialCode ? "confirm" : "code");
+  const [code,   setCode]   = useState(initialCode ?? "");
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const handle = async () => {
+  const [error,  setError]  = useState<string | null>(null);
+
+  const handleNext = () => {
     if (code.trim().length < 6) { setError("Enter the full invite code"); return; }
+    setError(null);
+    setStep("confirm");
+  };
+
+  const handleJoin = async () => {
     setSaving(true); setError(null);
-    try { await onJoin(code.trim().toUpperCase()); onClose(); }
-    catch (e: any) { setError(e.message || "Invalid code or group not found"); }
+    try {
+      await onJoin(code.trim().toUpperCase());
+      onClose();
+    } catch (e: any) {
+      const msg = (e.message ?? "").toLowerCase();
+      // "already a member" returns HTTP 200 from backend — never reaches here.
+      // All real errors (expired, rate limit, invalid) land here.
+      setError(e.message || "Invalid code or group not found");
+      setStep("code");
+    }
     finally { setSaving(false); }
   };
+
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
       <div className="relative bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl w-full sm:max-w-md p-6"
         style={{ animation: "slideUp 0.25s ease both" }}>
         <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-5 sm:hidden" />
-        <div className="flex items-start justify-between mb-5">
-          <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-2xl bg-blue-600 flex items-center justify-center shrink-0">
-              <LogIn size={20} className="text-white" />
+
+        {/* ── Step 1: Enter code ── */}
+        {step === "code" && (
+          <>
+            <div className="flex items-start justify-between mb-5">
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 rounded-2xl bg-blue-600 flex items-center justify-center shrink-0">
+                  <LogIn size={20} className="text-white" />
+                </div>
+                <div>
+                  <h2 className="text-gray-800 font-black text-xl font-['Sora',sans-serif]">Join a Group</h2>
+                  <p className="text-gray-400 text-xs mt-0.5">Enter the invite code from your group owner</p>
+                </div>
+              </div>
+              <button onClick={onClose} className="w-8 h-8 rounded-xl bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-400 hover:text-gray-600 transition-all shrink-0 ml-2 mt-0.5">
+                <X size={15} strokeWidth={2.5} />
+              </button>
             </div>
-            <div>
-              <h2 className="text-gray-800 font-black text-xl font-['Sora',sans-serif]">Join a Group</h2>
-              <p className="text-gray-400 text-xs mt-0.5">Enter the invite code from your group owner</p>
+            {error && (
+              <div className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-600 text-sm px-4 py-3 rounded-xl mb-4">
+                <X size={14} className="shrink-0" />{error}
+              </div>
+            )}
+            <label className="block text-gray-500 text-[10px] font-bold uppercase tracking-widest mb-2">Invite Code</label>
+            <input type="text" value={code} onChange={e => setCode(e.target.value.toUpperCase())}
+              onKeyDown={e => e.key === "Enter" && handleNext()}
+              placeholder="e.g. FINXK7Q2" maxLength={12} autoFocus
+              className="w-full px-4 py-3.5 rounded-xl border border-gray-200 bg-gray-50 text-gray-800 font-black text-center text-xl tracking-[0.3em] focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all placeholder:text-gray-300 placeholder:text-base placeholder:tracking-normal placeholder:font-semibold" />
+            <div className="flex gap-3 mt-5">
+              <button onClick={onClose}
+                className="flex-1 py-3.5 rounded-xl border-2 border-gray-200 text-gray-500 font-bold text-sm hover:bg-gray-50 transition-all">
+                Cancel
+              </button>
+              <button onClick={handleNext} disabled={code.trim().length < 6}
+                className="flex-1 py-3.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm transition-all disabled:opacity-50 hover:shadow-lg active:scale-[0.98]">
+                Next →
+              </button>
             </div>
-          </div>
-          <button onClick={onClose} className="w-8 h-8 rounded-xl bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-400 hover:text-gray-600 transition-all shrink-0 ml-2 mt-0.5">
-            <X size={15} strokeWidth={2.5} />
-          </button>
-        </div>
-        {error && <div className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-600 text-sm px-4 py-3 rounded-xl mb-4"><X size={14} className="shrink-0" />{error}</div>}
-        <label className="block text-gray-500 text-[10px] font-bold uppercase tracking-widest mb-2">Invite Code</label>
-        <input type="text" value={code} onChange={e => setCode(e.target.value.toUpperCase())} onKeyDown={e => e.key === "Enter" && handle()}
-          placeholder="e.g. FINXK7Q2" maxLength={12}
-          className="w-full px-4 py-3.5 rounded-xl border border-gray-200 bg-gray-50 text-gray-800 font-black text-center text-xl tracking-[0.3em] focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all placeholder:text-gray-300 placeholder:text-base placeholder:tracking-normal placeholder:font-semibold" />
-        <div className="flex gap-3 mt-5">
-          <button onClick={onClose} className="flex-1 py-3.5 rounded-xl border-2 border-gray-200 text-gray-500 font-bold text-sm hover:bg-gray-50 transition-all">Cancel</button>
-          <button onClick={handle} disabled={saving || code.trim().length < 6}
-            className="flex-1 py-3.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm transition-all disabled:opacity-50 hover:shadow-lg active:scale-[0.98]">
-            {saving ? "Joining…" : "Join Group"}
-          </button>
-        </div>
+          </>
+        )}
+
+        {/* ── Step 2: Confirm ── */}
+        {step === "confirm" && (
+          <>
+            <div className="flex justify-center mb-5">
+              <div className="w-16 h-16 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center">
+                <Users size={28} className="text-blue-500" strokeWidth={1.75} />
+              </div>
+            </div>
+            <h2 className="text-gray-800 font-black text-xl font-['Sora',sans-serif] text-center">Join this group?</h2>
+            <p className="text-gray-400 text-sm text-center mt-2 mb-1">
+              You're about to join with code
+            </p>
+            <p className="text-blue-600 font-black text-xl tracking-[0.25em] text-center mb-5">
+              {code.trim().toUpperCase()}
+            </p>
+            <p className="text-gray-400 text-sm text-center leading-relaxed mb-6">
+              All group members will be able to see your expenses added to this group.
+            </p>
+            {error && (
+              <div className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-600 text-sm px-4 py-3 rounded-xl mb-4">
+                <X size={14} className="shrink-0" />{error}
+              </div>
+            )}
+            <div className="flex gap-3">
+              <button onClick={() => { setStep("code"); setError(null); }}
+                className="flex-1 py-3.5 rounded-xl border-2 border-gray-200 text-gray-500 font-bold text-sm hover:bg-gray-50 transition-all">
+                Cancel
+              </button>
+              <button onClick={handleJoin} disabled={saving}
+                className="flex-1 py-3.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm transition-all disabled:opacity-50 hover:shadow-lg hover:shadow-blue-600/25 active:scale-[0.98]">
+                {saving ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                    </svg>Joining…
+                  </span>
+                ) : "Yes, Join Group"}
+              </button>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
@@ -186,8 +263,21 @@ function GroupCard({ group, isActive }: { group: Group; isActive: boolean }) {
 export default function GroupsPage() {
   const { activeContext } = useGroup();
   const { groups, loading, error, createGroup, joinGroup } = useGroups();
-  const [showCreate, setShowCreate] = useState(false);
-  const [showJoin,   setShowJoin]   = useState(false);
+  const searchParams = useSearchParams();
+  const [showCreate,    setShowCreate]    = useState(false);
+  const [showJoin,      setShowJoin]      = useState(false);
+  const [pendingCode,   setPendingCode]   = useState<string | null>(null);
+
+  // Auto-open join confirm when arriving via invite link (?join=CODE)
+  useEffect(() => {
+    const code = searchParams.get("join")?.toUpperCase().trim();
+    if (code) {
+      setPendingCode(code);
+      setShowJoin(true);
+      // Clean the URL without navigation
+      window.history.replaceState({}, "", "/dashboard/groups");
+    }
+  }, [searchParams]);
 
   return (
     <>
@@ -239,10 +329,10 @@ export default function GroupsPage() {
         ) : groups.length === 0 ? (
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm py-20 px-6 text-center"
             style={{ animation: "slideUp 0.4s ease both" }}>
-            <div className="w-20 h-20 rounded-3xl bg-blue-50 flex items-center justify-center mx-auto mb-5">
-              <Users size={36} className="text-blue-400" strokeWidth={1.5} />
+            <div className="w-20 h-20 rounded-3xl bg-indigo-50 flex items-center justify-center mx-auto mb-5">
+              <Users size={36} className="text-indigo-400" strokeWidth={1.5} />
             </div>
-            <h2 className="text-gray-800 font-bold text-xl font-['Sora',sans-serif]">No groups yet</h2>
+            <h2 className="text-gray-800 font-black text-xl font-['Sora',sans-serif]">No groups yet</h2>
             <p className="text-gray-400 text-sm mt-2 max-w-xs mx-auto leading-relaxed">
               Create a group to share budgets and track spending together with family or friends.
             </p>
@@ -289,7 +379,7 @@ export default function GroupsPage() {
       </div>
 
       {showCreate && <CreateGroupModal onClose={() => setShowCreate(false)} onCreate={createGroup} />}
-      {showJoin   && <JoinGroupModal   onClose={() => setShowJoin(false)}   onJoin={joinGroup}    />}
+      {showJoin   && <JoinGroupModal   onClose={() => { setShowJoin(false); setPendingCode(null); }}   onJoin={joinGroup}   initialCode={pendingCode ?? undefined} />}
     </>
   );
 }

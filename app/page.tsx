@@ -1,10 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
-import Features from "@/components/Features";
-import HowItWorks from "@/components/HowItWorks";
+import Navbar from "@/components/home/Navbar";
+import Footer from "@/components/home/Footer";
+import Features from "@/components/home/Features";
+import HowItWorks from "@/components/home/HowItWorks";
 import {
   TrendingDown, ShoppingBag, Car, ArrowLeftRight,
   TrendingUp, ChevronRight, MapPin, Users, BarChart2,

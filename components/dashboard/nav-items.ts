@@ -1,7 +1,7 @@
 import {
   LayoutDashboard,
-  Receipt,
-  Target,
+  TrendingDown,
+  Wallet,
   Tags,
   BarChart3,
   Users,
@@ -10,8 +10,8 @@ import {
 
 export const NAV_ITEMS = [
   { icon: LayoutDashboard, label: "Dashboard",  href: "/dashboard",            id: "dashboard"  },
-  { icon: Receipt,         label: "Expenses",   href: "/dashboard/expenses",   id: "expenses"   },
-  { icon: Target,          label: "Budgets",    href: "/dashboard/budgets",    id: "budgets"    },
+  { icon: TrendingDown,         label: "Expenses",   href: "/dashboard/expenses",   id: "expenses"   },
+  { icon: Wallet,          label: "Budgets",    href: "/dashboard/budgets",    id: "budgets"    },
   { icon: Tags,            label: "Categories", href: "/dashboard/categories", id: "categories" },
   { icon: BarChart3,       label: "Analytics",  href: "/dashboard/analytics",  id: "analytics"  },
 ];

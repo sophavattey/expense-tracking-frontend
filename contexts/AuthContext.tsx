@@ -6,13 +6,12 @@ import { authService } from "../services/auth.service";
 import { userService } from "../services/user.service";
 import type { AuthUser } from "../types/auth.types";
 
-// ─── Types ────────────────────────────────────────────────────────
 interface AuthContextType {
   user: AuthUser | null;
   loading: boolean;
   error: string | null;
   isAuthenticated: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string, skipRedirect?: boolean) => Promise<void>;
   register: (name: string, email: string, password: string, preferredCurrency?: "USD" | "KHR") => Promise<void>;
   loginWithGoogle: () => void;
   logout: () => Promise<void>;
@@ -21,17 +20,20 @@ interface AuthContextType {
 }
 
 const PUBLIC_PATHS = ["/login", "/signup", "/forgot-password", "/join"];
-
-// ─── Context ──────────────────────────────────────────────────────
-const AuthContext = createContext<AuthContextType | null>(null);
-
-// ─── Redirect helpers ─────────────────────────────────────────────
-// We store the post-auth destination in sessionStorage so it survives
-// the Google OAuth full-page redirect without polluting the URL.
 const REDIRECT_KEY = "finset_auth_redirect";
 
+const AuthContext = createContext<AuthContextType | null>(null);
+
 function saveRedirect(path: string) {
-  if (typeof window !== "undefined") sessionStorage.setItem(REDIRECT_KEY, path);
+  if (typeof window === "undefined") return;
+  // Convert invite links to the groups page with join param
+  // so after Google OAuth the user lands on /dashboard/groups?join=CODE
+  if (path.startsWith("/join?code=")) {
+    const code = new URLSearchParams(path.split("?")[1]).get("code") ?? "";
+    sessionStorage.setItem(REDIRECT_KEY, `/dashboard/groups?join=${code}`);
+  } else {
+    sessionStorage.setItem(REDIRECT_KEY, path);
+  }
 }
 
 function popRedirect(): string {
@@ -41,7 +43,6 @@ function popRedirect(): string {
   return val;
 }
 
-// ─── Provider ─────────────────────────────────────────────────────
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user,    setUser]    = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
@@ -53,10 +54,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     authService.me()
       .then(u => {
         setUser(u);
-        // If we just came back from Google OAuth and there's a saved redirect, use it
-        if (typeof window !== "undefined") {
-          const stored = sessionStorage.getItem(REDIRECT_KEY);
-          if (stored) router.replace(popRedirect());
+        // After Google OAuth — consume stored redirect (never interfere with /join)
+        if (typeof window !== "undefined" && !pathname.startsWith("/join")) {
+          const stored   = sessionStorage.getItem(REDIRECT_KEY);
+          const isPublic = PUBLIC_PATHS.some(p => pathname.startsWith(p));
+          if (stored && !isPublic) {
+            router.replace(popRedirect());
+          }
         }
       })
       .catch(() => {
@@ -68,18 +72,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const login = useCallback(async (email: string, password: string) => {
+  const login = useCallback(async (
+    email: string,
+    password: string,
+    skipRedirect = false,
+  ) => {
     setLoading(true);
     setError(null);
     try {
       const u = await authService.login(email, password);
       setUser(u);
-      // Respect ?redirect= query param, then sessionStorage, then default
-      const params   = new URLSearchParams(window.location.search);
-      const redirect = params.get("redirect") || popRedirect();
-      router.push(redirect);
+      if (!skipRedirect) {
+        const params   = new URLSearchParams(window.location.search);
+        const redirectParam = params.get("redirect") ?? "";
+        // Convert /join?code=XXX redirect to /dashboard/groups?join=XXX
+        let destination = redirectParam || popRedirect();
+        if (destination.startsWith("/join?code=")) {
+          const code = new URLSearchParams(destination.split("?")[1]).get("code") ?? "";
+          destination = `/dashboard/groups?join=${code}`;
+        }
+        router.push(destination);
+      }
     } catch (err: any) {
       setError(err.message || "Invalid email or password");
+      throw err;
     } finally {
       setLoading(false);
     }
@@ -105,10 +121,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const loginWithGoogle = useCallback(() => {
-    // Save the ?redirect= param (if any) to sessionStorage before the
-    // full-page redirect to Google. After OAuth completes, Spring Boot
-    // redirects back to the frontend, then the useEffect above picks up
-    // the stored redirect and navigates there.
     const params   = new URLSearchParams(window.location.search);
     const redirect = params.get("redirect");
     if (redirect) saveRedirect(redirect);
@@ -117,9 +129,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(async () => {
     setLoading(true);
-    try {
-      await authService.logout();
-    } finally {
+    try { await authService.logout(); }
+    finally {
       setUser(null);
       setLoading(false);
       router.push("/login");
@@ -135,23 +146,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider value={{
-      user,
-      loading,
-      error,
+      user, loading, error,
       isAuthenticated: !!user,
-      login,
-      register,
-      loginWithGoogle,
-      logout,
-      clearError,
-      updateCurrency,
+      login, register, loginWithGoogle, logout, clearError, updateCurrency,
     }}>
       {children}
     </AuthContext.Provider>
   );
 }
 
-// ─── Hook ─────────────────────────────────────────────────────────
 export function useAuth() {
   const ctx = useContext(AuthContext);
   if (!ctx) throw new Error("useAuth must be used inside <AuthProvider>");

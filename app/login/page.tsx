@@ -74,6 +74,7 @@ export default function LoginPage() {
     e.preventDefault();
     clearError();
     await login(email, password);
+    // login() in AuthContext converts /join?code=XXX → /dashboard/groups?join=XXX automatically
   };
 
   const handleGoogle = () => { clearError(); loginWithGoogle(); };
@@ -103,8 +104,7 @@ export default function LoginPage() {
       `}</style>
 
       <div className="min-h-screen flex">
-
-        {/* ── Left panel — untouched blue branding ── */}
+        {/* ── Left panel ── */}
         <div className="hidden lg:flex lg:w-[45%] xl:w-[40%] relative bg-blue-600 flex-col justify-between overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-br from-blue-700 via-blue-600 to-blue-500" />
           <div className="absolute top-0 right-0 w-80 h-80 bg-blue-500/40 rounded-full blur-3xl translate-x-1/2 -translate-y-1/2" />
@@ -112,7 +112,6 @@ export default function LoginPage() {
           <div className="absolute inset-0 opacity-[0.06]"
             style={{ backgroundImage: "linear-gradient(white 1px, transparent 1px), linear-gradient(90deg, white 1px, transparent 1px)", backgroundSize: "40px 40px" }} />
           <MiniChart />
-
           <div className="relative z-10 p-10">
             <Link href="/" className="inline-flex items-center gap-2.5">
               <div className="w-9 h-9 rounded-xl bg-white/20 backdrop-blur flex items-center justify-center border border-white/30">
@@ -123,7 +122,6 @@ export default function LoginPage() {
               </span>
             </Link>
           </div>
-
           <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-10 pb-8">
             <div className="relative w-full max-w-[300px] h-[320px]">
               <StatPill icon={PiggyBank}  label="This Month Saved" value="$248.50"     color="text-green-300"
@@ -150,7 +148,7 @@ export default function LoginPage() {
           <div className="relative z-10 p-10" />
         </div>
 
-        {/* ── Right panel — gray palette ── */}
+        {/* ── Right panel ── */}
         <div className="flex-1 flex items-center justify-center px-6 py-12 bg-gray-50">
           <div className="w-full max-w-[420px]">
 
@@ -180,7 +178,6 @@ export default function LoginPage() {
               </div>
             )}
 
-            {/* Heading */}
             <div className="form-in mb-8">
               <h1 className="text-3xl font-black text-gray-800 font-['Sora',sans-serif] mb-1">Welcome back</h1>
               <p className="text-gray-400 text-sm">
@@ -192,7 +189,6 @@ export default function LoginPage() {
               </p>
             </div>
 
-            {/* Error */}
             {error && (
               <div className="form-in mb-4 flex items-center gap-3 bg-red-50 border border-red-200 text-red-600 text-sm px-4 py-3 rounded-xl">
                 <AlertCircle size={16} className="shrink-0" />
@@ -200,7 +196,6 @@ export default function LoginPage() {
               </div>
             )}
 
-            {/* Google */}
             <div className="form-in-1 mb-5">
               <button onClick={handleGoogle} disabled={loading}
                 className="w-full flex items-center justify-center gap-3 bg-white border border-gray-200 hover:border-gray-300 text-gray-700 font-semibold text-sm py-3.5 rounded-xl transition-all hover:shadow-md active:scale-[0.98] disabled:opacity-60 disabled:cursor-wait">
@@ -221,14 +216,12 @@ export default function LoginPage() {
               </button>
             </div>
 
-            {/* Divider */}
             <div className="form-in-2 relative flex items-center gap-3 mb-5">
               <div className="flex-1 h-px bg-gray-200" />
               <span className="text-gray-400 text-xs font-medium uppercase tracking-widest">or</span>
               <div className="flex-1 h-px bg-gray-200" />
             </div>
 
-            {/* Form */}
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="form-in-3">
                 <label htmlFor="email" className="block text-gray-500 text-xs font-bold uppercase tracking-widest mb-1.5">Email</label>
@@ -236,7 +229,6 @@ export default function LoginPage() {
                   placeholder="you@example.com" required autoComplete="email"
                   className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 text-gray-800 placeholder-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all" />
               </div>
-
               <div className="form-in-3">
                 <div className="flex items-center justify-between mb-1.5">
                   <label htmlFor="password" className="block text-gray-500 text-xs font-bold uppercase tracking-widest">Password</label>
@@ -244,7 +236,6 @@ export default function LoginPage() {
                 </div>
                 <PasswordInput id="password" value={password} onChange={setPassword} />
               </div>
-
               <div className="form-in-5 pt-1">
                 <button type="submit" disabled={loading}
                   className="w-full shimmer-btn text-white font-bold py-3.5 rounded-xl transition-all hover:shadow-xl hover:shadow-blue-600/30 hover:-translate-y-0.5 active:scale-[0.98] active:translate-y-0 disabled:opacity-70 disabled:cursor-wait disabled:hover:translate-y-0">
@@ -256,7 +247,7 @@ export default function LoginPage() {
                       </svg>
                       Signing in…
                     </span>
-                  ) : "Sign In to FinSet"}
+                  ) : fromInvite ? "Sign In & Continue" : "Sign In to FinSet"}
                 </button>
               </div>
             </form>

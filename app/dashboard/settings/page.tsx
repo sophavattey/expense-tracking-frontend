@@ -113,54 +113,71 @@ export default function SettingsPage() {
   const joinDate = "February 2026";
 
   return (
-    <div className="max-w-2xl mx-auto space-y-4">
+    <div className="w-full space-y-5">
 
-      {/* ── Profile header ── */}
-      <div className="bg-linear-to-r from-blue-700 to-blue-500 rounded-2xl p-5 flex items-center gap-4 shadow-lg shadow-blue-600/20">
-        <Avatar user={user} size="md" />
-        <div className="min-w-0">
-          <p className="text-white font-black text-xl font-['Sora',sans-serif] leading-tight truncate">{user.name}</p>
-          <p className="text-blue-200 text-sm truncate">{user.email}</p>
-        </div>
+      {/* ── Page header ── */}
+      <div>
+        <p className="text-gray-400 text-xs font-bold uppercase tracking-widest">Account</p>
+        <h1 className="text-gray-800 font-black text-2xl sm:text-3xl font-['Sora',sans-serif] mt-0.5">Settings</h1>
+        <p className="text-gray-400 text-sm mt-1 hidden sm:block">Manage your account and preferences</p>
       </div>
 
-      {/* ── Account info ── */}
-      <Section title="Account Information" Icon={User} iconClass="text-blue-500" bgClass="bg-blue-50">
-        <InfoRow label="Full Name"    value={user.name} />
-        <InfoRow label="Email"        value={user.email} />
-        <InfoRow label="Member since" value={joinDate} />
-      </Section>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
 
-      {/* ── Preferences ── */}
-      <Section title="Preferences" Icon={Settings} iconClass="text-indigo-500" bgClass="bg-indigo-50">
-        <CurrencyRow current={user.preferredCurrency} onChange={updateCurrency} />
-        <InfoRow label="Language" value="English" />
-        <InfoRow label="Timezone" value="Asia/Phnom_Penh (UTC+7)" />
-      </Section>
+        {/* ── Left col: profile banner + danger zone ── */}
+        <div className="space-y-5">
 
-      {/* ── Danger zone ── */}
-      <div className="bg-white rounded-2xl border border-red-100 shadow-sm overflow-hidden">
-        <div className="px-5 py-4 border-b border-red-50 flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl bg-red-50 flex items-center justify-center shrink-0">
-            <AlertTriangle size={16} className="text-red-400" strokeWidth={2} />
+          {/* Profile header */}
+          <div className="bg-linear-to-br from-blue-700 to-blue-500 rounded-2xl p-5 flex flex-col items-center text-center gap-3 shadow-lg shadow-blue-600/20">
+            <Avatar user={user} size="md" />
+            <div className="min-w-0 w-full">
+              <p className="text-white font-black text-xl font-['Sora',sans-serif] leading-tight truncate">{user.name}</p>
+              <p className="text-blue-200 text-sm truncate">{user.email}</p>
+            </div>
           </div>
-          <h2 className="text-red-500 font-black text-base font-['Sora',sans-serif]">Account Actions</h2>
+
+          {/* Danger zone */}
+          <div className="bg-white rounded-2xl border border-red-100 shadow-sm overflow-hidden">
+            <div className="px-5 py-4 border-b border-red-50 flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-red-50 flex items-center justify-center shrink-0">
+                <AlertTriangle size={16} className="text-red-400" strokeWidth={2} />
+              </div>
+              <h2 className="text-red-500 font-black text-base font-['Sora',sans-serif]">Account Actions</h2>
+            </div>
+            <div className="px-5 py-4 space-y-3">
+              <button onClick={() => logout()}
+                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-red-200 text-red-500 hover:bg-red-50 hover:border-red-300 transition-all font-bold text-sm">
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                    d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+                Sign Out
+              </button>
+              <p className="text-gray-300 text-[10px] text-center">
+                Account deletion and data export coming in a future update.
+              </p>
+            </div>
+          </div>
         </div>
-        <div className="px-5 py-4 space-y-3">
-          <button onClick={() => logout()}
-            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-red-200 text-red-500 hover:bg-red-50 hover:border-red-300 transition-all font-bold text-sm">
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-            </svg>
-            Sign Out
-          </button>
-          <p className="text-gray-300 text-[10px] text-center">
-            Account deletion and data export coming in a future update.
-          </p>
+
+        {/* ── Right col: account info + preferences ── */}
+        <div className="lg:col-span-2 space-y-5">
+
+          <Section title="Account Information" Icon={User} iconClass="text-blue-500" bgClass="bg-blue-50">
+            <InfoRow label="Full Name"    value={user.name} />
+            <InfoRow label="Email"        value={user.email} />
+            <InfoRow label="Provider"     value={user.provider} />
+            <InfoRow label="Member since" value={joinDate} />
+          </Section>
+
+          <Section title="Preferences" Icon={Settings} iconClass="text-indigo-500" bgClass="bg-indigo-50">
+            <CurrencyRow current={user.preferredCurrency} onChange={updateCurrency} />
+            <InfoRow label="Language" value="English" />
+            <InfoRow label="Timezone" value="Asia/Phnom_Penh (UTC+7)" />
+          </Section>
+
         </div>
       </div>
-
     </div>
   );
 }

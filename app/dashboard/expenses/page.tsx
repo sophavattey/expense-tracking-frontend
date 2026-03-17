@@ -1,15 +1,14 @@
 "use client";
 
-import { useState } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { Users, Trash2, TrendingDown } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Users, Trash2, TrendingDown, X } from "lucide-react";
+import { ExpenseModal } from "@/components/expenses/ExpenseModal";
 import { useAuth } from "@/contexts/AuthContext";
 import { useGroup } from "@/contexts/GroupContext";
 import { useExpenses } from "@/hooks/useExpenses";
 import { useCategories } from "@/hooks/useCategories";
 import { expenseService } from "@/services/expense.service";
-import type { Expense } from "@/types/expense.types";
+import type { Expense, ExpenseRequest } from "@/types/expense.types";
 import type { GroupMember } from "@/types/group.types";
 
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
@@ -27,12 +26,13 @@ function fmtDate(iso: string) {
 function MemberAvatar({ member }: { member: GroupMember }) {
   return member.avatar
     ? <img src={member.avatar} alt={member.name} className="w-5 h-5 rounded-full object-cover ring-1 ring-white" />
-    : (
-      <div className="w-5 h-5 rounded-full bg-indigo-500 ring-1 ring-white flex items-center justify-center text-[9px] font-bold text-white">
+    : <div className="w-5 h-5 rounded-full bg-indigo-500 ring-1 ring-white flex items-center justify-center text-[9px] font-bold text-white">
         {member.name.charAt(0).toUpperCase()}
-      </div>
-    );
+      </div>;
 }
+
+/* ─── Category type ── */
+interface Category { id: string; name: string; icon: string; color: string; }
 
 /* ─── Delete modal ── */
 function DeleteModal({ expense, pref, onConfirm, onClose, deleting }: {
@@ -44,7 +44,6 @@ function DeleteModal({ expense, pref, onConfirm, onClose, deleting }: {
       <div className="relative bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl w-full sm:max-w-sm p-7 text-center"
         style={{ animation: "slideUp 0.25s ease both" }}>
         <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-6 sm:hidden" />
-        {/* Category icon — user-defined emoji, kept intentionally */}
         <div className="flex justify-center mb-5">
           <div className="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl"
             style={{ backgroundColor: expense.category.color + "20" }}>
@@ -74,39 +73,31 @@ function DeleteModal({ expense, pref, onConfirm, onClose, deleting }: {
 function ExpenseRow({ expense, pref, onEdit, onDelete, groupMembers, currentUserId }: {
   expense: Expense; pref: "USD" | "KHR";
   onEdit: (e: Expense) => void; onDelete: (e: Expense) => void;
-  groupMembers?: GroupMember[];
-  currentUserId?: string;
+  groupMembers?: GroupMember[]; currentUserId?: string;
 }) {
   const pmColors: Record<string, string> = {
-    KHQR: "bg-blue-100 text-blue-600", CASH: "bg-green-50 text-green-600",
-    CARD: "bg-yellow-50 text-yellow-600", BANK: "bg-purple-50 text-purple-600",
-    APP: "bg-orange-50 text-orange-500", OTHER: "bg-slate-50 text-slate-500",
+    CASH:    "bg-green-50 text-green-600",
+    KHQR:    "bg-blue-100 text-blue-600",
+    CARD:    "bg-yellow-50 text-yellow-600",
+    EWALLET: "bg-orange-50 text-orange-500",
+    OTHER:   "bg-slate-50 text-slate-500",
   };
-
   const nativeAmt = expense.currency === "KHR"
-    ? `៛${Math.round(expense.amount).toLocaleString()}`
-    : fmtUSD(expense.amount);
+    ? `៛${Math.round(expense.amount).toLocaleString()}` : fmtUSD(expense.amount);
   const primaryAmt   = fmtPrimary(expense.amountBase, pref);
   const secondaryAmt = fmtSecondary(expense.amountBase, pref);
   const nativeMatchesPrimary =
-    (pref === "USD" && expense.currency === "USD") ||
-    (pref === "KHR" && expense.currency === "KHR");
-
-  const author    = groupMembers?.find(m => m.userId === (expense as any).userId);
-  const canModify = !groupMembers || (expense as any).userId === currentUserId;
+    (pref === "USD" && expense.currency === "USD") || (pref === "KHR" && expense.currency === "KHR");
+  const author    = groupMembers?.find(m => m.userId === expense.userId);
+  const canModify = !groupMembers || expense.userId === currentUserId;
 
   return (
     <div className="flex items-center gap-3 py-3 border-b border-gray-50 last:border-0 hover:bg-gray-50/60 -mx-2 px-2 rounded-xl transition-all group">
       <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center text-lg sm:text-xl shrink-0 relative"
         style={{ backgroundColor: expense.category.color + "18", border: `1.5px solid ${expense.category.color}30` }}>
         {expense.category.icon}
-        {author && (
-          <div className="absolute -bottom-1 -right-1">
-            <MemberAvatar member={author} />
-          </div>
-        )}
+        {author && <div className="absolute -bottom-1 -right-1"><MemberAvatar member={author} /></div>}
       </div>
-
       <div className="flex-1 min-w-0">
         <p className="text-gray-800 text-sm font-semibold truncate leading-tight">
           {expense.merchantName ?? expense.category.name}
@@ -121,14 +112,12 @@ function ExpenseRow({ expense, pref, onEdit, onDelete, groupMembers, currentUser
           </span>
         </div>
       </div>
-
       <div className="text-right shrink-0">
         <p className="text-red-500 font-bold text-sm leading-tight">-{primaryAmt}</p>
         <p className="text-gray-400 text-xs leading-tight">
           {nativeMatchesPrimary ? `-${secondaryAmt}` : `-${nativeAmt}`}
         </p>
       </div>
-
       {canModify && (
         <div className="flex items-center gap-1 shrink-0 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
           <button onClick={() => onEdit(expense)} aria-label="Edit"
@@ -140,10 +129,7 @@ function ExpenseRow({ expense, pref, onEdit, onDelete, groupMembers, currentUser
           </button>
           <button onClick={() => onDelete(expense)} aria-label="Delete"
             className="p-2 rounded-lg bg-red-50 hover:bg-red-100 text-red-400 transition-colors">
-            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-            </svg>
+            <Trash2 size={14} strokeWidth={2} />
           </button>
         </div>
       )}
@@ -152,7 +138,7 @@ function ExpenseRow({ expense, pref, onEdit, onDelete, groupMembers, currentUser
 }
 
 /* ═══════════════════════════════════════════════════════════════════
-   PAGE
+   EXPENSES PAGE
 ═══════════════════════════════════════════════════════════════════ */
 export default function ExpensesPage() {
   const { user } = useAuth();
@@ -162,12 +148,17 @@ export default function ExpensesPage() {
   const groupId      = isGroup && activeContext.type === "group" ? activeContext.groupId : undefined;
   const groupMembers = isGroup && activeContext.type === "group" ? (activeContext.groupMembers ?? []) : [];
 
-  const router = useRouter();
   const [catFilter,    setCatFilter]    = useState<string | null>(null);
   const [memberFilter, setMemberFilter] = useState<string | null>(null);
   const [from,         setFrom]         = useState("");
   const [to,           setTo]           = useState("");
   const [showFilters,  setShowFilters]  = useState(false);
+
+  // Modal state
+  const [modalOpen,    setModalOpen]    = useState(false);
+  const [editExpenseId, setEditExpenseId] = useState<string | null>(null);
+
+  // Delete state
   const [deleteTarget, setDeleteTarget] = useState<Expense | null>(null);
   const [deleting,     setDeleting]     = useState(false);
 
@@ -177,25 +168,22 @@ export default function ExpensesPage() {
     from: from || undefined,
     to:   to   || undefined,
   });
-
   const { categories } = useCategories();
 
   const displayedExpenses = memberFilter
     ? expenses.filter(e => (e as any).userId === memberFilter)
     : expenses;
 
+  const openCreate = () => { setEditExpenseId(null); setModalOpen(true); };
+  const openEdit   = (e: Expense) => { setEditExpenseId(e.id); setModalOpen(true); };
+  const closeModal = () => { setModalOpen(false); setEditExpenseId(null); };
+
   const handleDelete = async () => {
     if (!deleteTarget) return;
     setDeleting(true);
-    try {
-      await expenseService.delete(deleteTarget.id);
-      setDeleteTarget(null);
-      refetch();
-    } catch {
-      setDeleteTarget(null);
-    } finally {
-      setDeleting(false);
-    }
+    try { await expenseService.delete(deleteTarget.id); setDeleteTarget(null); refetch(); }
+    catch { setDeleteTarget(null); }
+    finally { setDeleting(false); }
   };
 
   const totalUSD   = displayedExpenses.reduce((s, e) => s + e.amountBase, 0);
@@ -210,7 +198,7 @@ export default function ExpensesPage() {
 
       <div className="w-full space-y-4">
 
-        {/* ── Header ── */}
+        {/* Header */}
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="text-gray-400 text-xs font-bold uppercase tracking-widest">Track</p>
@@ -236,41 +224,36 @@ export default function ExpensesPage() {
               {hasFilters && <span className="w-1.5 h-1.5 bg-white rounded-full sm:hidden" />}
               {hasFilters && <span className="hidden sm:inline bg-white/30 text-white text-[10px] px-1.5 rounded-md">ON</span>}
             </button>
-            <Link href="/dashboard/expenses/new"
-              className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm font-bold px-3 sm:px-5 py-2.5 sm:py-3 rounded-xl transition-all hover:shadow-lg hover:shadow-blue-600/25 active:scale-95">
+            <button onClick={openCreate}
+              className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm font-bold
+                px-3 sm:px-5 py-2.5 sm:py-3 rounded-xl transition-all hover:shadow-lg hover:shadow-blue-600/25 active:scale-95">
               <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
               </svg>
               <span className="hidden sm:inline">Add Expense</span>
               <span className="sm:hidden">Add</span>
-            </Link>
+            </button>
           </div>
         </div>
 
-        {/* ── Summary strip ── */}
+        {/* Summary strip */}
         {!loading && displayedExpenses.length > 0 && (
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3" style={{ animation: "fadeIn 0.3s ease" }}>
-            <div className="bg-white rounded-2xl border border-gray-100 px-4 py-3 sm:px-5 sm:py-4">
-              <p className="text-gray-400 text-[10px] font-bold uppercase tracking-widest mb-1">Showing</p>
-              <p className="text-gray-800 font-black text-lg sm:text-xl font-['Sora',sans-serif] leading-tight">{displayedExpenses.length}</p>
-              <p className="text-gray-400 text-xs mt-0.5">of {totalElements} total</p>
-            </div>
-            <div className="bg-white rounded-2xl border border-gray-100 px-4 py-3 sm:px-5 sm:py-4">
-              <p className="text-gray-400 text-[10px] font-bold uppercase tracking-widest mb-1">Total Spent</p>
-              <p className="text-red-500 font-black text-lg sm:text-xl font-['Sora',sans-serif] leading-tight">{fmtPrimary(totalUSD, pref)}</p>
-              <p className="text-gray-400 text-xs mt-0.5">{fmtSecondary(totalUSD, pref)}</p>
-            </div>
-            <div className="hidden sm:block bg-white rounded-2xl border border-gray-100 px-5 py-4">
-              <p className="text-gray-400 text-[10px] font-bold uppercase tracking-widest mb-1">Average</p>
-              <p className="text-gray-800 font-black text-xl font-['Sora',sans-serif] leading-tight">
-                {fmtPrimary(displayedExpenses.length > 0 ? totalUSD / displayedExpenses.length : 0, pref)}
-              </p>
-              <p className="text-gray-400 text-xs mt-0.5">per expense</p>
-            </div>
+            {[
+              { label: "Showing", value: String(displayedExpenses.length), sub: `of ${totalElements} total`, color: "text-gray-800" },
+              { label: "Total Spent", value: fmtPrimary(totalUSD, pref), sub: fmtSecondary(totalUSD, pref), color: "text-red-500" },
+              { label: "Average", value: fmtPrimary(displayedExpenses.length > 0 ? totalUSD / displayedExpenses.length : 0, pref), sub: "per expense", color: "text-gray-800" },
+            ].map((card, i) => (
+              <div key={card.label} className={`bg-white rounded-2xl border border-gray-100 px-4 py-3 sm:px-5 sm:py-4 ${i === 2 ? "hidden sm:block" : ""}`}>
+                <p className="text-gray-400 text-[10px] font-bold uppercase tracking-widest mb-1">{card.label}</p>
+                <p className={`font-black text-lg sm:text-xl font-['Sora',sans-serif] leading-tight ${card.color}`}>{card.value}</p>
+                <p className="text-gray-400 text-xs mt-0.5">{card.sub}</p>
+              </div>
+            ))}
           </div>
         )}
 
-        {/* ── Filter panel ── */}
+        {/* Filter panel */}
         {showFilters && (
           <div className="bg-white rounded-2xl border border-gray-100 p-4 sm:p-5 space-y-4 shadow-sm"
             style={{ animation: "slideUp 0.2s ease" }}>
@@ -278,15 +261,11 @@ export default function ExpensesPage() {
               <p className="text-gray-800 font-bold text-sm">Filter Expenses</p>
               {hasFilters && (
                 <button onClick={() => { setCatFilter(null); setFrom(""); setTo(""); setMemberFilter(null); }}
-                  className="text-red-400 text-xs sm:text-sm font-semibold hover:text-red-600 transition-colors flex items-center gap-1">
-                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                  Clear all
+                  className="text-red-400 text-xs font-semibold hover:text-red-600 transition-colors flex items-center gap-1">
+                  <X size={13} />Clear all
                 </button>
               )}
             </div>
-
             {isGroup && groupMembers.length > 0 && (
               <div>
                 <p className="text-gray-400 text-xs font-semibold mb-2">Member</p>
@@ -305,7 +284,6 @@ export default function ExpensesPage() {
                 </div>
               </div>
             )}
-
             <div>
               <p className="text-gray-400 text-xs font-semibold mb-2">Category</p>
               <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
@@ -322,7 +300,6 @@ export default function ExpensesPage() {
                 ))}
               </div>
             </div>
-
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <p className="text-gray-400 text-xs font-semibold mb-1.5">From</p>
@@ -342,12 +319,11 @@ export default function ExpensesPage() {
           <div className="flex items-center gap-3 bg-red-50 border border-red-200 text-red-600 text-sm px-4 py-3.5 rounded-2xl">
             <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            {error}
+            </svg>{error}
           </div>
         )}
 
-        {/* ── Expense list ── */}
+        {/* Expense list */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
           {!loading && displayedExpenses.length > 0 && (
             <div className="hidden sm:flex items-center gap-4 px-8 py-3 border-b border-gray-50 bg-gray-50/50">
@@ -359,14 +335,13 @@ export default function ExpensesPage() {
               <div className="w-[72px] shrink-0" />
             </div>
           )}
-
           {loading ? (
             <div className="p-4 sm:p-6 space-y-4">
               {[...Array(6)].map((_, i) => (
                 <div key={i} className="flex items-center gap-3 animate-pulse">
                   <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-gray-100 shrink-0" />
-                  <div className="flex-1">
-                    <div className="h-4 bg-gray-100 rounded-lg w-36 sm:w-48 mb-2" />
+                  <div className="flex-1 space-y-2">
+                    <div className="h-4 bg-gray-100 rounded-lg w-36 sm:w-48" />
                     <div className="h-3 bg-gray-50 rounded-lg w-24 sm:w-32" />
                   </div>
                   <div className="space-y-1">
@@ -388,38 +363,43 @@ export default function ExpensesPage() {
                 {hasFilters ? "Try adjusting your filters" : "Start tracking your spending"}
               </p>
               {!hasFilters && (
-                <Link href="/dashboard/expenses/new"
+                <button onClick={openCreate}
                   className="inline-flex items-center gap-2 mt-5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold px-6 py-3 rounded-xl transition-all hover:shadow-lg">
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
                   </svg>
                   Add your first expense
-                </Link>
+                </button>
               )}
             </div>
           ) : (
             <div className="p-3 sm:p-6">
               {displayedExpenses.map(e => (
-                <ExpenseRow
-                  key={e.id} expense={e} pref={pref}
-                  onEdit={exp => router.push(`/dashboard/expenses/edit/${exp.id}`)}
-                  onDelete={setDeleteTarget}
+                <ExpenseRow key={e.id} expense={e} pref={pref}
+                  onEdit={openEdit} onDelete={setDeleteTarget}
                   groupMembers={isGroup ? groupMembers : undefined}
-                  currentUserId={user?.id}
-                />
+                  currentUserId={user?.id} />
               ))}
             </div>
           )}
         </div>
-
         <div className="h-4 sm:h-0" />
       </div>
 
-      {deleteTarget && (
-        <DeleteModal
-          expense={deleteTarget} pref={pref}
-          onConfirm={handleDelete} onClose={() => setDeleteTarget(null)} deleting={deleting}
+      {modalOpen && (
+        <ExpenseModal
+          expenseId={editExpenseId}
+          groupId={groupId}
+          groupName={activeContext.groupName}
+          categories={categories}
+          onClose={closeModal}
+          onSaved={refetch}
         />
+      )}
+
+      {deleteTarget && (
+        <DeleteModal expense={deleteTarget} pref={pref}
+          onConfirm={handleDelete} onClose={() => setDeleteTarget(null)} deleting={deleting} />
       )}
     </>
   );

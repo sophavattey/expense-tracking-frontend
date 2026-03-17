@@ -25,7 +25,7 @@ function Logo({ collapsed }: { collapsed?: boolean }) {
           <span className="text-gray-800 font-black text-xl font-['Sora',sans-serif] tracking-tight">
             Fin<span className="text-blue-600">Set</span>
           </span>
-          <p className="text-gray-400 text-[10px] font-medium -mt-0.5">Personal Finance</p>
+          <p className="text-gray-400 text-[10px] font-medium -mt-0.5">Personal & Collaborative Finance</p>
         </div>
       )}
     </div>
@@ -47,6 +47,37 @@ export function UserAvatar({ name, avatar, size = "md" }: {
   return (
     <div className={`${dims} rounded-full bg-linear-to-br from-blue-500 to-blue-600 flex items-center justify-center font-black text-white shrink-0 shadow-sm`}>
       {initial}
+    </div>
+  );
+}
+
+/* ─── Sign out confirm modal ─────────────────────────────────────── */
+function SignOutModal({ onConfirm, onClose }: { onConfirm: () => void; onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
+      <div className="relative bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl w-full sm:max-w-sm p-7 text-center"
+        style={{ animation: "slideUp 0.25s ease both" }}>
+        <style>{`@keyframes slideUp { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }`}</style>
+        <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-6 sm:hidden" />
+        <div className="w-14 h-14 rounded-2xl bg-red-50 flex items-center justify-center mx-auto mb-4">
+          <LogOut size={24} className="text-red-400" strokeWidth={1.75} />
+        </div>
+        <h3 className="text-gray-800 font-black text-xl font-['Sora',sans-serif]">Sign out?</h3>
+        <p className="text-gray-400 text-sm mt-2 mb-7 leading-relaxed">
+          You'll be redirected to the login page. Any unsaved changes will be lost.
+        </p>
+        <div className="flex gap-3">
+          <button onClick={onClose}
+            className="flex-1 py-3.5 rounded-xl border-2 border-gray-200 text-gray-500 font-bold text-sm hover:bg-gray-50 transition-all">
+            Cancel
+          </button>
+          <button onClick={onConfirm}
+            className="flex-1 py-3.5 rounded-xl bg-red-500 hover:bg-red-600 text-white font-bold text-sm transition-all shadow-lg shadow-red-500/25">
+            Sign Out
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -112,33 +143,47 @@ function NavLinks({ activeId, collapsed = false, onLinkClick }: {
 /* ─── User row ───────────────────────────────────────────────────── */
 function UserRow({ compact = false, onAction }: { compact?: boolean; onAction?: () => void }) {
   const { user, logout } = useAuth();
+  const [showConfirm, setShowConfirm] = useState(false);
   const name   = user?.name   ?? "";
   const email  = user?.email  ?? "";
   const avatar = user?.avatar;
 
-  if (compact) {
-    return (
-      <div className="flex justify-center py-1.5">
-        <UserAvatar name={name} avatar={avatar} />
-      </div>
-    );
-  }
+  const handleSignOut = () => {
+    setShowConfirm(false);
+    logout();
+    onAction?.();
+  };
 
   return (
-    <div className="mb-1">
-      <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl">
-        <UserAvatar name={name} avatar={avatar} />
-        <div className="flex-1 min-w-0">
-          <p className="text-gray-800 text-sm font-bold truncate">{name || "—"}</p>
-          <p className="text-gray-400 text-xs truncate">{email}</p>
+    <>
+      {compact ? (
+        <div className="flex justify-center py-1.5">
+          <UserAvatar name={name} avatar={avatar} />
         </div>
-      </div>
-      <button onClick={() => { logout(); onAction?.(); }}
-        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-gray-700 hover:text-red-500 hover:bg-red-50 transition-all">
-        <LogOut size={16} className="shrink-0" strokeWidth={2} />
-        <span className="text-sm font-medium">Sign out</span>
-      </button>
-    </div>
+      ) : (
+        <div className="mb-1">
+          <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl">
+            <UserAvatar name={name} avatar={avatar} />
+            <div className="flex-1 min-w-0">
+              <p className="text-gray-800 text-sm font-bold truncate">{name || "—"}</p>
+              <p className="text-gray-400 text-xs truncate">{email}</p>
+            </div>
+          </div>
+          <button onClick={() => setShowConfirm(true)}
+            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-gray-700 hover:text-red-500 hover:bg-red-50 transition-all">
+            <LogOut size={16} className="shrink-0" strokeWidth={2} />
+            <span className="text-sm font-medium">Sign out</span>
+          </button>
+        </div>
+      )}
+
+      {showConfirm && (
+        <SignOutModal
+          onConfirm={handleSignOut}
+          onClose={() => setShowConfirm(false)}
+        />
+      )}
+    </>
   );
 }
 
@@ -159,7 +204,7 @@ export function DashboardSidebar() {
         <Logo collapsed={collapsed} />
       </div>
 
-      {/* Nav — full height, no context switcher */}
+      {/* Nav */}
       <NavLinks activeId={activeId} collapsed={collapsed} />
 
       {/* Bottom: user + collapse */}
@@ -211,7 +256,6 @@ export function MobileDrawer({ open, onClose }: { open: boolean; onClose: () => 
           </button>
         </div>
 
-        {/* Nav only — no context switcher, it lives in the header */}
         <NavLinks activeId={activeId} onLinkClick={onClose} />
 
         <div className="border-t border-gray-100 p-3 shrink-0">

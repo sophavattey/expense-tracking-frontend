@@ -180,7 +180,7 @@ function DesktopHeader() {
           <div className="w-9 h-9 rounded-xl bg-blue-50 border border-gray-200 flex items-center justify-center">
             <PageIcon size={18} className="text-blue-400" strokeWidth={1.75} />
           </div>
-          <h1 className="font-bold text-lg font-[\'Sora\',sans-serif] text-gray-800">{pageTitle}</h1>
+          <h1 className="font-bold text-md font-[\'Sora\',sans-serif] text-gray-800">{pageTitle}</h1>
         </div>
 
         {/* Divider */}
