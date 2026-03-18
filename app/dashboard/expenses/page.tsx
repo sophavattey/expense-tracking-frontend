@@ -77,17 +77,16 @@ function ExpenseRow({ expense, pref, onEdit, onDelete, groupMembers, currentUser
 }) {
   const pmColors: Record<string, string> = {
     CASH:    "bg-green-50 text-green-600",
-    KHQR:    "bg-blue-100 text-blue-600",
+    BANK:    "bg-blue-100 text-blue-600",
     CARD:    "bg-yellow-50 text-yellow-600",
     EWALLET: "bg-orange-50 text-orange-500",
     OTHER:   "bg-slate-50 text-slate-500",
   };
   const nativeAmt = expense.currency === "KHR"
     ? `៛${Math.round(expense.amount).toLocaleString()}` : fmtUSD(expense.amount);
-  const primaryAmt   = fmtPrimary(expense.amountBase, pref);
-  const secondaryAmt = fmtSecondary(expense.amountBase, pref);
-  const nativeMatchesPrimary =
-    (pref === "USD" && expense.currency === "USD") || (pref === "KHR" && expense.currency === "KHR");
+  const convertedAmt = expense.currency === "KHR"
+    ? fmtUSD(expense.amountBase)
+    : `៛${Math.round(expense.amountBase * KHR_RATE).toLocaleString()}`;
   const author    = groupMembers?.find(m => m.userId === expense.userId);
   const canModify = !groupMembers || expense.userId === currentUserId;
 
@@ -113,10 +112,8 @@ function ExpenseRow({ expense, pref, onEdit, onDelete, groupMembers, currentUser
         </div>
       </div>
       <div className="text-right shrink-0">
-        <p className="text-red-500 font-bold text-sm leading-tight">-{primaryAmt}</p>
-        <p className="text-gray-400 text-xs leading-tight">
-          {nativeMatchesPrimary ? `-${secondaryAmt}` : `-${nativeAmt}`}
-        </p>
+        <p className="text-red-500 font-bold text-sm leading-tight">-{nativeAmt}</p>
+        <p className="text-gray-400 text-xs leading-tight">-{convertedAmt}</p>
       </div>
       {canModify && (
         <div className="flex items-center gap-1 shrink-0 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">

@@ -1,7 +1,7 @@
 import type { Category } from "./category.types";
 
 export type Currency      = "USD" | "KHR";
-export type PaymentMethod = "CASH" | "KHQR" | "CARD" | "EWALLET" | "OTHER";
+export type PaymentMethod = "CASH" | "BANK" | "CARD" | "EWALLET" | "OTHER";
 
 export interface Expense {
   id: string;

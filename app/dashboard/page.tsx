@@ -229,7 +229,7 @@ function BudgetBar({ status, pref }: { status: BudgetStatus; pref: "USD" | "KHR"
    TRANSACTION ROW
 ═══════════════════════════════════════════════════════════════════ */
 const PM_COLORS: Record<string, string> = {
-  CASH: "bg-green-50 text-green-600", KHQR: "bg-blue-100 text-blue-600",
+  CASH: "bg-green-50 text-green-600", BANK: "bg-blue-100 text-blue-600",
   CARD: "bg-yellow-50 text-yellow-600", EWALLET: "bg-orange-50 text-orange-500",
   OTHER: "bg-slate-50 text-slate-500",
 };

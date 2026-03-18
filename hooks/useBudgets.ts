@@ -4,9 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { budgetService } from "@/services/budget.service";
 import type { BudgetSummary, BudgetRequest } from "@/types/budget.types";
 
-interface UseBudgetsOptions {
-  groupId?: string;
-}
+interface UseBudgetsOptions { groupId?: string; }
 
 interface UseBudgetsReturn {
   summary: BudgetSummary | null;
@@ -18,6 +16,8 @@ interface UseBudgetsReturn {
   deleteBudget: (id: string) => Promise<void>;
 }
 
+const POLL_INTERVAL = 10_000;
+
 export function useBudgets(options?: UseBudgetsOptions): UseBudgetsReturn {
   const groupId = options?.groupId;
 
@@ -25,10 +25,10 @@ export function useBudgets(options?: UseBudgetsOptions): UseBudgetsReturn {
   const [loading, setLoading] = useState(true);
   const [error,   setError]   = useState<string | null>(null);
 
+  // Full fetch — shows loading (initial only)
   const fetchBudgets = useCallback(async () => {
     try {
-      setLoading(true);
-      setError(null);
+      setLoading(true); setError(null);
       const data = groupId
         ? await budgetService.getGroupStatus(groupId)
         : await budgetService.getStatus();
@@ -40,16 +40,28 @@ export function useBudgets(options?: UseBudgetsOptions): UseBudgetsReturn {
     }
   }, [groupId]);
 
+  // Silent fetch — updates data without loading state
+  const silentFetch = useCallback(async () => {
+    try {
+      const data = groupId
+        ? await budgetService.getGroupStatus(groupId)
+        : await budgetService.getStatus();
+      setSummary(data);
+    } catch { /* ignore */ }
+  }, [groupId]);
+
   useEffect(() => { fetchBudgets(); }, [fetchBudgets]);
 
+  // Background polling — group context only
+  useEffect(() => {
+    if (!groupId) return;
+    const id = setInterval(silentFetch, POLL_INTERVAL);
+    return () => clearInterval(id);
+  }, [groupId, silentFetch]);
+
   const createBudget = useCallback(async (data: BudgetRequest) => {
-    // Group context  → POST /api/budgets/group/{groupId}
-    // Personal       → POST /api/budgets
-    if (groupId) {
-      await budgetService.createForGroup(groupId, data);
-    } else {
-      await budgetService.create(data);
-    }
+    if (groupId) await budgetService.createForGroup(groupId, data);
+    else         await budgetService.create(data);
     await fetchBudgets();
   }, [fetchBudgets, groupId]);
 

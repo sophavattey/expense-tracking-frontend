@@ -11,7 +11,7 @@ const KHR_RATE = 4000;
 
 const PAYMENT_METHODS = [
   { value: "CASH",    label: "Cash",     Icon: Banknote      },
-  { value: "KHQR",    label: "KHQR",     Icon: Smartphone    },
+  { value: "BANK",    label: "Bank",     Icon: Smartphone    },
   { value: "CARD",    label: "Card",     Icon: CreditCard    },
   { value: "EWALLET", label: "e-Wallet", Icon: Wallet        },
   { value: "OTHER",   label: "Other",    Icon: MoreHorizontal },

@@ -1,7 +1,11 @@
+"use client";
+
 import { useState, useEffect, useCallback } from "react";
 import { groupService } from "@/services/group.service";
 import { useGroup } from "@/contexts/GroupContext";
 import type { Group } from "@/types/group.types";
+
+const POLL_INTERVAL = 10_000;
 
 export function useGroups() {
   const [groups,  setGroups]  = useState<Group[]>([]);
@@ -10,6 +14,7 @@ export function useGroups() {
 
   const { refreshGroups, switchToPersonal, activeContext } = useGroup();
 
+  // Full fetch — shows loading (initial only)
   const fetch = useCallback(async () => {
     setLoading(true); setError(null);
     try {
@@ -22,7 +27,21 @@ export function useGroups() {
     }
   }, []);
 
+  // Silent fetch — updates data without loading state
+  const silentFetch = useCallback(async () => {
+    try {
+      const data = await groupService.getMyGroups();
+      setGroups(data);
+    } catch { /* ignore */ }
+  }, []);
+
   useEffect(() => { fetch(); }, [fetch]);
+
+  // Background polling — always on (groups list needs to stay fresh)
+  useEffect(() => {
+    const id = setInterval(silentFetch, POLL_INTERVAL);
+    return () => clearInterval(id);
+  }, [silentFetch]);
 
   const refetch = useCallback(async () => {
     await fetch();
@@ -55,7 +74,6 @@ export function useGroups() {
 
   const removeMember = useCallback(async (groupId: string, targetUserId: string) => {
     await groupService.removeMember(groupId, targetUserId);
-    // intentionally no refetch() here — caller (onUpdate) handles refresh
   }, []);
 
   const dissolveGroup = useCallback(async (groupId: string) => {
@@ -73,12 +91,7 @@ export function useGroups() {
   return {
     groups, loading, error,
     refetch,
-    createGroup,
-    joinGroup,
-    renameGroup,
-    leaveGroup,
-    removeMember,
-    dissolveGroup,
-    regenerateInvite,
+    createGroup, joinGroup, renameGroup,
+    leaveGroup, removeMember, dissolveGroup, regenerateInvite,
   };
 }

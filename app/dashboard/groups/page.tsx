@@ -336,13 +336,13 @@ export default function GroupsPage() {
             <p className="text-gray-400 text-sm mt-2 max-w-xs mx-auto leading-relaxed">
               Create a group to share budgets and track spending together with family or friends.
             </p>
-            <div className="flex items-center justify-center gap-3 mt-6">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mt-6 w-full max-w-xs mx-auto">
               <button onClick={() => setShowJoin(true)}
-                className="flex items-center gap-2 px-5 py-3 rounded-xl border-2 border-gray-200 text-gray-600 font-bold text-sm hover:bg-gray-50 transition-all">
+                className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-3 rounded-xl border-2 border-gray-200 text-gray-600 font-bold text-sm hover:bg-gray-50 transition-all">
                 <LogIn size={16} />Join with code
               </button>
               <button onClick={() => setShowCreate(true)}
-                className="flex items-center gap-2 px-5 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm transition-all hover:shadow-lg hover:shadow-blue-600/25">
+                className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm transition-all hover:shadow-lg hover:shadow-blue-600/25">
                 <Plus size={16} />Create group
               </button>
             </div>

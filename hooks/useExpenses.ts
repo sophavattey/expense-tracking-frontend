@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { expenseService } from "@/services/expense.service";
 import type { Expense, ExpensePage, ExpenseRequest, ExpenseFilters } from "@/types/expense.types";
 
 interface UseExpensesOptions extends ExpenseFilters {
-  groupId?: string; // if provided, fetches group expenses
+  groupId?: string;
 }
 
 interface UseExpensesReturn {
@@ -19,6 +19,8 @@ interface UseExpensesReturn {
   updateExpense: (id: string, data: ExpenseRequest) => Promise<Expense>;
   deleteExpense: (id: string) => Promise<void>;
 }
+
+const POLL_INTERVAL = 10_000; // 10s — only in group context
 
 export function useExpenses(filters?: UseExpensesOptions): UseExpensesReturn {
   const [expenses,      setExpenses]      = useState<Expense[]>([]);
@@ -34,12 +36,11 @@ export function useExpenses(filters?: UseExpensesOptions): UseExpensesReturn {
   const from       = filters?.from;
   const to         = filters?.to;
 
+  // Full fetch — shows loading skeleton (initial load only)
   const fetchExpenses = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      // Group context → /api/expenses/group/{groupId}?...
-      // Personal      → /api/expenses?...
       const result: ExpensePage = groupId
         ? await expenseService.getGroupExpenses(groupId, { page, size, categoryId, from, to })
         : await expenseService.getAll({ page, size, categoryId, from, to });
@@ -53,7 +54,27 @@ export function useExpenses(filters?: UseExpensesOptions): UseExpensesReturn {
     }
   }, [groupId, page, size, categoryId, from, to]);
 
+  // Silent fetch — no loading state, just updates data in background
+  const silentFetch = useCallback(async () => {
+    try {
+      const result: ExpensePage = groupId
+        ? await expenseService.getGroupExpenses(groupId, { page, size, categoryId, from, to })
+        : await expenseService.getAll({ page, size, categoryId, from, to });
+      setExpenses(result.content);
+      setTotalElements(result.totalElements);
+      setTotalPages(result.totalPages);
+    } catch { /* ignore background errors */ }
+  }, [groupId, page, size, categoryId, from, to]);
+
+  // Initial load
   useEffect(() => { fetchExpenses(); }, [fetchExpenses]);
+
+  // Background polling — group context only
+  useEffect(() => {
+    if (!groupId) return;
+    const id = setInterval(silentFetch, POLL_INTERVAL);
+    return () => clearInterval(id);
+  }, [groupId, silentFetch]);
 
   const createExpense = useCallback(async (data: ExpenseRequest) => {
     const payload = groupId ? { ...data, groupId } : data;
