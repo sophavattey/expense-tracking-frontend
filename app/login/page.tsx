@@ -60,7 +60,7 @@ function PasswordInput({ value, onChange, placeholder, id }: {
   );
 }
 
-export default function LoginPage() {
+function LoginPage() {
   const [email,    setEmail]    = useState("");
   const [password, setPassword] = useState("");
   const { login, loginWithGoogle, loading, error, clearError } = useAuth();
@@ -256,5 +256,14 @@ export default function LoginPage() {
         </div>
       </div>
     </>
+  );
+}
+
+import { Suspense } from "react";
+export default function LoginPageWrapper() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-gray-50 flex items-center justify-center"><div className="w-8 h-8 rounded-full border-4 border-blue-600 border-t-transparent animate-spin" /></div>}>
+      <LoginPage />
+    </Suspense>
   );
 }

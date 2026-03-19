@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { groupService } from "@/services/group.service";
@@ -12,23 +12,21 @@ type JoinState =
   | { status: "confirm" }
   | { status: "joining" }
   | { status: "success"; groupName: string }
-
   | { status: "expired" }
   | { status: "rate_limited"; retryMinutes: number }
   | { status: "error"; message: string }
   | { status: "no_code" };
 
-export default function JoinPage() {
+function JoinPage() {
   const searchParams = useSearchParams();
   const router       = useRouter();
   const { isAuthenticated, loading: authLoading } = useAuth();
 
   const code = searchParams.get("code")?.toUpperCase().trim() ?? "";
 
-  // Initialize directly to confirm if already authenticated — avoids flash
   const [state, setState] = useState<JoinState>(() => {
     if (!code) return { status: "no_code" };
-    return { status: "loading" }; // wait for auth resolution
+    return { status: "loading" };
   });
 
   useEffect(() => {
@@ -38,7 +36,6 @@ export default function JoinPage() {
       router.replace(`/login?redirect=${encodeURIComponent(`/join?code=${code}`)}`);
       return;
     }
-    // Authenticated + have code → show confirm immediately
     setState({ status: "confirm" });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authLoading, isAuthenticated, code]);
@@ -74,13 +71,7 @@ export default function JoinPage() {
         <div className="bg-white rounded-3xl shadow-2xl shadow-blue-100 w-full max-w-sm p-8 text-center anim">
 
           {/* Logo */}
-          <Link href="/" className="inline-flex items-center gap-2 mb-8">
-            <div className="w-8 h-8 rounded-xl bg-blue-600 flex items-center justify-center">
-              <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5}
-                  d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
+          <Link href="/" className="inline-flex items-center mb-8">
             <span className="text-blue-800 font-black text-lg font-['Sora',sans-serif]">
               Fin<span className="text-blue-500">Set</span>
             </span>
@@ -96,7 +87,7 @@ export default function JoinPage() {
             </div>
           )}
 
-          {/* ── Confirm ── */}
+          {/* Confirm */}
           {state.status === "confirm" && (
             <div className="space-y-4">
               <div className="w-16 h-16 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center mx-auto">
@@ -149,8 +140,6 @@ export default function JoinPage() {
               </div>
             </div>
           )}
-
-
 
           {/* Expired */}
           {state.status === "expired" && (
@@ -233,5 +222,17 @@ export default function JoinPage() {
         </div>
       </div>
     </>
+  );
+}
+
+export default function JoinPageWrapper() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-blue-50 flex items-center justify-center">
+        <div className="w-8 h-8 rounded-full border-4 border-blue-600 border-t-transparent animate-spin" />
+      </div>
+    }>
+      <JoinPage />
+    </Suspense>
   );
 }
