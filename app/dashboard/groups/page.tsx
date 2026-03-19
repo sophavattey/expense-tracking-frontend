@@ -260,7 +260,7 @@ function GroupCard({ group, isActive }: { group: Group; isActive: boolean }) {
 /* ═══════════════════════════════════════════════════════════════════
    GROUPS PAGE
 ═══════════════════════════════════════════════════════════════════ */
-export default function GroupsPage() {
+function GroupsPage() {
   const { activeContext } = useGroup();
   const { groups, loading, error, createGroup, joinGroup } = useGroups();
   const searchParams = useSearchParams();
@@ -336,13 +336,13 @@ export default function GroupsPage() {
             <p className="text-gray-400 text-sm mt-2 max-w-xs mx-auto leading-relaxed">
               Create a group to share budgets and track spending together with family or friends.
             </p>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mt-6 w-full max-w-xs mx-auto">
+            <div className="flex items-center justify-center gap-3 mt-6">
               <button onClick={() => setShowJoin(true)}
-                className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-3 rounded-xl border-2 border-gray-200 text-gray-600 font-bold text-sm hover:bg-gray-50 transition-all">
+                className="flex items-center gap-2 px-5 py-3 rounded-xl border-2 border-gray-200 text-gray-600 font-bold text-sm hover:bg-gray-50 transition-all whitespace-nowrap">
                 <LogIn size={16} />Join with code
               </button>
               <button onClick={() => setShowCreate(true)}
-                className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm transition-all hover:shadow-lg hover:shadow-blue-600/25">
+                className="flex items-center gap-2 px-5 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm transition-all hover:shadow-lg hover:shadow-blue-600/25 whitespace-nowrap">
                 <Plus size={16} />Create group
               </button>
             </div>
@@ -381,5 +381,18 @@ export default function GroupsPage() {
       {showCreate && <CreateGroupModal onClose={() => setShowCreate(false)} onCreate={createGroup} />}
       {showJoin   && <JoinGroupModal   onClose={() => { setShowJoin(false); setPendingCode(null); }}   onJoin={joinGroup}   initialCode={pendingCode ?? undefined} />}
     </>
+  );
+}
+
+import { Suspense } from "react";
+export default function GroupsPageWrapper() {
+  return (
+    <Suspense fallback={
+      <div className="w-full flex items-center justify-center py-20">
+        <div className="w-8 h-8 rounded-full border-4 border-blue-600 border-t-transparent animate-spin" />
+      </div>
+    }>
+      <GroupsPage />
+    </Suspense>
   );
 }

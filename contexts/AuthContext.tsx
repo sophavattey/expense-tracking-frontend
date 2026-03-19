@@ -26,14 +26,7 @@ const AuthContext = createContext<AuthContextType | null>(null);
 
 function saveRedirect(path: string) {
   if (typeof window === "undefined") return;
-  // Convert invite links to the groups page with join param
-  // so after Google OAuth the user lands on /dashboard/groups?join=CODE
-  if (path.startsWith("/join?code=")) {
-    const code = new URLSearchParams(path.split("?")[1]).get("code") ?? "";
-    sessionStorage.setItem(REDIRECT_KEY, `/dashboard/groups?join=${code}`);
-  } else {
-    sessionStorage.setItem(REDIRECT_KEY, path);
-  }
+  sessionStorage.setItem(REDIRECT_KEY, path);
 }
 
 function popRedirect(): string {
@@ -55,11 +48,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .then(u => {
         setUser(u);
         // After Google OAuth — consume stored redirect (never interfere with /join)
-        if (typeof window !== "undefined" && !pathname.startsWith("/join")) {
+        if (typeof window !== "undefined") {
           const stored   = sessionStorage.getItem(REDIRECT_KEY);
           const isPublic = PUBLIC_PATHS.some(p => pathname.startsWith(p));
-          if (stored && !isPublic) {
+          // Always consume stored redirect after OAuth — even on public pages
+          // This handles: Google OAuth → lands on /login → stored = /join?code=ABC
+          if (stored) {
             router.replace(popRedirect());
+          } else if (!isPublic) {
+            // Already on a protected page and authenticated — stay here
           }
         }
       })
@@ -83,14 +80,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const u = await authService.login(email, password);
       setUser(u);
       if (!skipRedirect) {
-        const params   = new URLSearchParams(window.location.search);
+        const params        = new URLSearchParams(window.location.search);
         const redirectParam = params.get("redirect") ?? "";
-        // Convert /join?code=XXX redirect to /dashboard/groups?join=XXX
-        let destination = redirectParam || popRedirect();
-        if (destination.startsWith("/join?code=")) {
-          const code = new URLSearchParams(destination.split("?")[1]).get("code") ?? "";
-          destination = `/dashboard/groups?join=${code}`;
-        }
+        const destination   = redirectParam || popRedirect();
         router.push(destination);
       }
     } catch (err: any) {
@@ -123,7 +115,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const loginWithGoogle = useCallback(() => {
     const params   = new URLSearchParams(window.location.search);
     const redirect = params.get("redirect");
-    if (redirect) saveRedirect(redirect);
+    // Save redirect in a cookie so it survives the cross-origin OAuth round trip
+    if (redirect) {
+      document.cookie = `oauth_redirect=${encodeURIComponent(redirect)};path=/;max-age=300;SameSite=Lax`;
+      saveRedirect(redirect); // also keep sessionStorage as fallback
+    }
     authService.loginWithGoogle();
   }, []);
 

@@ -2,10 +2,10 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { budgetService } from "@/services/budget.service";
+import { cache } from "@/lib/cache";
 import type { BudgetSummary, BudgetRequest } from "@/types/budget.types";
 
 interface UseBudgetsOptions { groupId?: string; }
-
 interface UseBudgetsReturn {
   summary: BudgetSummary | null;
   loading: boolean;
@@ -17,64 +17,64 @@ interface UseBudgetsReturn {
 }
 
 const POLL_INTERVAL = 10_000;
+const TTL           = 25_000;
 
 export function useBudgets(options?: UseBudgetsOptions): UseBudgetsReturn {
-  const groupId = options?.groupId;
+  const groupId  = options?.groupId;
+  const cacheKey = `budgets:${groupId ?? "personal"}`;
 
-  const [summary, setSummary] = useState<BudgetSummary | null>(null);
-  const [loading, setLoading] = useState(true);
+  const cached   = cache.get<BudgetSummary>(cacheKey);
+  const [summary, setSummary] = useState<BudgetSummary | null>(cached);
+  const [loading, setLoading] = useState(!cached);
   const [error,   setError]   = useState<string | null>(null);
 
-  // Full fetch — shows loading (initial only)
-  const fetchBudgets = useCallback(async () => {
+  const doFetch = useCallback(async (silent = false) => {
     try {
-      setLoading(true); setError(null);
+      if (!silent) setLoading(true);
+      setError(null);
       const data = groupId
         ? await budgetService.getGroupStatus(groupId)
         : await budgetService.getStatus();
+      cache.set(cacheKey, data, TTL);
       setSummary(data);
     } catch (e: any) {
-      setError(e.message || "Failed to load budgets");
+      if (!silent) setError(e.message || "Failed to load budgets");
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
-  }, [groupId]);
+  }, [groupId, cacheKey]);
 
-  // Silent fetch — updates data without loading state
-  const silentFetch = useCallback(async () => {
-    try {
-      const data = groupId
-        ? await budgetService.getGroupStatus(groupId)
-        : await budgetService.getStatus();
-      setSummary(data);
-    } catch { /* ignore */ }
-  }, [groupId]);
+  useEffect(() => { doFetch(!!cached); }, [groupId]);
 
-  useEffect(() => { fetchBudgets(); }, [fetchBudgets]);
-
-  // Background polling — group context only
   useEffect(() => {
     if (!groupId) return;
-    const id = setInterval(silentFetch, POLL_INTERVAL);
+    const id = setInterval(() => doFetch(true), POLL_INTERVAL);
     return () => clearInterval(id);
-  }, [groupId, silentFetch]);
+  }, [groupId]);
+
+  const refetch = useCallback(async () => {
+    cache.invalidate("budgets:");
+    await doFetch(false);
+  }, [doFetch]);
 
   const createBudget = useCallback(async (data: BudgetRequest) => {
     if (groupId) await budgetService.createForGroup(groupId, data);
     else         await budgetService.create(data);
-    await fetchBudgets();
-  }, [fetchBudgets, groupId]);
+    cache.invalidate("budgets:");
+    await doFetch(false);
+  }, [doFetch, groupId]);
 
   const updateBudget = useCallback(async (id: string, data: BudgetRequest) => {
     await budgetService.update(id, data);
-    await fetchBudgets();
-  }, [fetchBudgets]);
+    cache.invalidate("budgets:");
+    await doFetch(false);
+  }, [doFetch]);
 
   const deleteBudget = useCallback(async (id: string) => {
     await budgetService.delete(id);
-    await fetchBudgets();
-  }, [fetchBudgets]);
+    cache.invalidate("budgets:");
+    await doFetch(false);
+  }, [doFetch]);
 
-  return { summary, loading, error, refetch: fetchBudgets,
-           createBudget, updateBudget, deleteBudget };
+  return { summary, loading, error, refetch, createBudget, updateBudget, deleteBudget };
 }

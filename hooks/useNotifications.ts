@@ -25,32 +25,22 @@ export function useNotifications() {
   const [unreadCount,   setUnreadCount]   = useState(0);
   const [loading,       setLoading]       = useState(true);
 
-  const fetchNotifications = useCallback(async () => {
+  const doFetch = useCallback(async (silent = false) => {
     try {
-      setLoading(true);
-      // Pass redirectOn401=false — don't redirect on auth failure for notifications
+      if (!silent) setLoading(true);
       const data = await apiFetch<NotificationList>("/api/notifications", {}, true, false);
       setNotifications(data.notifications);
       setUnreadCount(data.unreadCount);
     } catch { /* ignore */ }
-    finally { setLoading(false); }
+    finally { if (!silent) setLoading(false); }
   }, []);
 
-  const silentFetch = useCallback(async () => {
-    try {
-      // redirectOn401=false — background poll should never force a redirect
-      const data = await apiFetch<NotificationList>("/api/notifications", {}, true, false);
-      setNotifications(data.notifications);
-      setUnreadCount(data.unreadCount);
-    } catch { /* ignore background errors */ }
-  }, []);
-
-  useEffect(() => { fetchNotifications(); }, [fetchNotifications]);
+  useEffect(() => { doFetch(false); }, []);
 
   useEffect(() => {
-    const id = setInterval(silentFetch, POLL_INTERVAL);
+    const id = setInterval(() => doFetch(true), POLL_INTERVAL);
     return () => clearInterval(id);
-  }, [silentFetch]);
+  }, []);
 
   const markAllRead = useCallback(async () => {
     try {
@@ -68,5 +58,5 @@ export function useNotifications() {
     } catch { /* ignore */ }
   }, []);
 
-  return { notifications, unreadCount, loading, markAllRead, markRead, refetch: fetchNotifications };
+  return { notifications, unreadCount, loading, markAllRead, markRead, refetch: () => doFetch(false) };
 }

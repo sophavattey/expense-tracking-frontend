@@ -12,6 +12,7 @@ import { useBudgets } from "@/hooks/useBudgets";
 import { expenseService } from "@/services/expense.service";
 import { getBudgetColor } from "@/utils/budgetColors";
 import type { Expense, MonthlySummary } from "@/types/expense.types";
+import { cache } from "@/lib/cache";
 import type { BudgetStatus } from "@/types/budget.types";
 import type { GroupMember } from "@/types/group.types";
 
@@ -310,13 +311,28 @@ export default function DashboardPage() {
 
   useEffect(() => {
     let cancelled = false;
+    const chartKey = `chart:${selYear}:${groupId ?? "personal"}`;
+    const cached = cache.get<typeof chartData>(chartKey);
+    if (cached && refreshKey === 0) {
+      setChartData(cached);
+      setChartLoading(false);
+      setSelectedBarIdx(selMonth - 1);
+      return;
+    }
     setChartLoading(true);
     const promises = Array.from({ length: 12 }, (_, i) => {
       const m = i + 1;
       const fetch = groupId ? expenseService.getGroupSummary(groupId, { year: selYear, month: m }) : expenseService.getSummary({ year: selYear, month: m });
       return fetch.then(s => ({ label: SHORT_MON[i], amount: s.totalSpentUsd ?? 0, year: selYear, month: m })).catch(() => ({ label: SHORT_MON[i], amount: 0, year: selYear, month: m }));
     });
-    Promise.all(promises).then(history => { if (!cancelled) { setChartData(history); setChartLoading(false); setSelectedBarIdx(selMonth - 1); } });
+    Promise.all(promises).then(history => {
+      if (!cancelled) {
+        cache.set(chartKey, history, 25_000);
+        setChartData(history);
+        setChartLoading(false);
+        setSelectedBarIdx(selMonth - 1);
+      }
+    });
     return () => { cancelled = true; };
   }, [selYear, groupId, refreshKey]);
 
@@ -324,9 +340,19 @@ export default function DashboardPage() {
 
   useEffect(() => {
     let cancelled = false;
+    const summaryKey = `summary:${selYear}:${selMonth}:${groupId ?? "personal"}`;
+    const cached = cache.get<MonthlySummary>(summaryKey);
+    if (cached && refreshKey === 0) {
+      setMonthlySummary(cached);
+      setSummaryLoading(false);
+      return;
+    }
     setSummaryLoading(true);
     const fetch = groupId ? expenseService.getGroupSummary(groupId, { year: selYear, month: selMonth }) : expenseService.getSummary({ year: selYear, month: selMonth });
-    fetch.then(s => { if (!cancelled) setMonthlySummary(s); }).catch(() => { if (!cancelled) setMonthlySummary(null); }).finally(() => { if (!cancelled) setSummaryLoading(false); });
+    fetch
+      .then(s => { if (!cancelled) { cache.set(summaryKey, s, 25_000); setMonthlySummary(s); } })
+      .catch(() => { if (!cancelled) setMonthlySummary(null); })
+      .finally(() => { if (!cancelled) setSummaryLoading(false); });
     return () => { cancelled = true; };
   }, [selYear, selMonth, groupId, refreshKey]);
 

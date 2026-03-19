@@ -1,13 +1,11 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { expenseService } from "@/services/expense.service";
+import { cache } from "@/lib/cache";
 import type { Expense, ExpensePage, ExpenseRequest, ExpenseFilters } from "@/types/expense.types";
 
-interface UseExpensesOptions extends ExpenseFilters {
-  groupId?: string;
-}
-
+interface UseExpensesOptions extends ExpenseFilters { groupId?: string; }
 interface UseExpensesReturn {
   expenses: Expense[];
   totalElements: number;
@@ -20,84 +18,71 @@ interface UseExpensesReturn {
   deleteExpense: (id: string) => Promise<void>;
 }
 
-const POLL_INTERVAL = 10_000; // 10s — only in group context
+const POLL_INTERVAL = 10_000;
+const TTL           = 25_000;
 
 export function useExpenses(filters?: UseExpensesOptions): UseExpensesReturn {
-  const [expenses,      setExpenses]      = useState<Expense[]>([]);
-  const [totalElements, setTotalElements] = useState(0);
-  const [totalPages,    setTotalPages]    = useState(0);
-  const [loading,       setLoading]       = useState(true);
+  const { groupId, page, size, categoryId, from, to } = filters ?? {};
+  const cacheKey = `expenses:${JSON.stringify({ groupId, page, size, categoryId, from, to })}`;
+
+  const cached = cache.get<ExpensePage>(cacheKey);
+  const [expenses,      setExpenses]      = useState<Expense[]>(cached?.content ?? []);
+  const [totalElements, setTotalElements] = useState(cached?.totalElements ?? 0);
+  const [totalPages,    setTotalPages]    = useState(cached?.totalPages ?? 0);
+  const [loading,       setLoading]       = useState(!cached);
   const [error,         setError]         = useState<string | null>(null);
 
-  const groupId    = filters?.groupId;
-  const page       = filters?.page;
-  const size       = filters?.size;
-  const categoryId = filters?.categoryId;
-  const from       = filters?.from;
-  const to         = filters?.to;
-
-  // Full fetch — shows loading skeleton (initial load only)
-  const fetchExpenses = useCallback(async () => {
+  const doFetch = useCallback(async (silent = false) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       setError(null);
       const result: ExpensePage = groupId
         ? await expenseService.getGroupExpenses(groupId, { page, size, categoryId, from, to })
         : await expenseService.getAll({ page, size, categoryId, from, to });
+      cache.set(cacheKey, result, TTL);
       setExpenses(result.content);
       setTotalElements(result.totalElements);
       setTotalPages(result.totalPages);
     } catch (e: any) {
-      setError(e.message || "Failed to load expenses");
+      if (!silent) setError(e.message || "Failed to load expenses");
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
-  }, [groupId, page, size, categoryId, from, to]);
+  }, [groupId, page, size, categoryId, from, to, cacheKey]);
 
-  // Silent fetch — no loading state, just updates data in background
-  const silentFetch = useCallback(async () => {
-    try {
-      const result: ExpensePage = groupId
-        ? await expenseService.getGroupExpenses(groupId, { page, size, categoryId, from, to })
-        : await expenseService.getAll({ page, size, categoryId, from, to });
-      setExpenses(result.content);
-      setTotalElements(result.totalElements);
-      setTotalPages(result.totalPages);
-    } catch { /* ignore background errors */ }
-  }, [groupId, page, size, categoryId, from, to]);
+  useEffect(() => { doFetch(!!cached); }, [groupId, page, size, categoryId, from, to]);
 
-  // Initial load
-  useEffect(() => { fetchExpenses(); }, [fetchExpenses]);
-
-  // Background polling — group context only
   useEffect(() => {
     if (!groupId) return;
-    const id = setInterval(silentFetch, POLL_INTERVAL);
+    const id = setInterval(() => doFetch(true), POLL_INTERVAL);
     return () => clearInterval(id);
-  }, [groupId, silentFetch]);
+  }, [groupId]);
+
+  const refetch = useCallback(async () => {
+    cache.invalidate("expenses:");
+    await doFetch(false);
+  }, [doFetch]);
 
   const createExpense = useCallback(async (data: ExpenseRequest) => {
     const payload = groupId ? { ...data, groupId } : data;
     const created = await expenseService.create(payload);
-    await fetchExpenses();
+    cache.invalidate("expenses:");
+    await doFetch(false);
     return created;
-  }, [fetchExpenses, groupId]);
+  }, [doFetch, groupId]);
 
   const updateExpense = useCallback(async (id: string, data: ExpenseRequest) => {
     const updated = await expenseService.update(id, data);
+    cache.invalidate("expenses:");
     setExpenses(prev => prev.map(e => e.id === id ? updated : e));
     return updated;
   }, []);
 
   const deleteExpense = useCallback(async (id: string) => {
     await expenseService.delete(id);
-    await fetchExpenses();
-  }, [fetchExpenses]);
+    cache.invalidate("expenses:");
+    await doFetch(false);
+  }, [doFetch]);
 
-  return {
-    expenses, totalElements, totalPages,
-    loading, error,
-    refetch: fetchExpenses,
-    createExpense, updateExpense, deleteExpense,
-  };
+  return { expenses, totalElements, totalPages, loading, error, refetch, createExpense, updateExpense, deleteExpense };
 }
