@@ -47,17 +47,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     authService.me()
       .then(u => {
         setUser(u);
-        // After Google OAuth — consume stored redirect (never interfere with /join)
         if (typeof window !== "undefined") {
           const stored   = sessionStorage.getItem(REDIRECT_KEY);
           const isPublic = PUBLIC_PATHS.some(p => pathname.startsWith(p));
-          // Always consume stored redirect after OAuth — even on public pages
-          // This handles: Google OAuth → lands on /login → stored = /join?code=ABC
           if (stored) {
+            // Consume stored redirect (e.g. invite link after OAuth)
             router.replace(popRedirect());
-          } else if (!isPublic) {
-            // Already on a protected page and authenticated — stay here
+          } else if (isPublic) {
+            // Authenticated but on public page (login, landing) — go to dashboard
+            // This handles mobile Safari which wipes sessionStorage after OAuth
+            router.replace("/dashboard");
           }
+          // else: already on a protected page — stay here
         }
       })
       .catch(() => {
@@ -117,7 +118,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const redirect = params.get("redirect");
     // Save redirect in a cookie so it survives the cross-origin OAuth round trip
     if (redirect) {
-      document.cookie = `oauth_redirect=${encodeURIComponent(redirect)};path=/;max-age=300;SameSite=Lax`;
+      document.cookie = `oauth_redirect=${encodeURIComponent(redirect)};path=/;max-age=300;SameSite=None;Secure`;
       saveRedirect(redirect); // also keep sessionStorage as fallback
     }
     authService.loginWithGoogle();
