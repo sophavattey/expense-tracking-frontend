@@ -5,8 +5,8 @@ import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
 
 export default function Navbar() {
-  const [scrolled, setScrolled] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
+  const [scrolled,  setScrolled]  = useState(false);
+  const [menuOpen,  setMenuOpen]  = useState(false);
   const { user, isAuthenticated, logout, loading } = useAuth();
 
   useEffect(() => {
@@ -17,68 +17,63 @@ export default function Navbar() {
 
   return (
     <nav className={`fixed top-0 inset-x-0 z-50 transition-all duration-300 ${
-      scrolled ? "bg-white/90 backdrop-blur-lg shadow-sm border-b border-blue-100" : "bg-transparent"
+      scrolled ? "bg-white/95 backdrop-blur-lg shadow-sm border-b border-gray-100" : "bg-transparent"
     }`}>
       <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
 
         {/* Logo */}
-        <Link href="/" className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-xl bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-600/30">
-            <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5}
-                d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          </div>
-          <span className="text-blue-800 font-black text-xl tracking-tight font-['Sora',sans-serif]">
+        <Link href="/" className="flex items-center">
+          <span className="text-gray-800 font-black text-xl tracking-tight font-['Sora',sans-serif]">
             Fin<span className="text-blue-600">Set</span>
           </span>
         </Link>
 
-        {/* Desktop nav links */}
+        {/* Desktop nav */}
         <div className="hidden md:flex items-center gap-8">
           {[
-            { label: "Features", href: "#features" },
-            { label: "How it Works", href: "#how-it-works" },
-            { label: "Pricing", href: "#pricing" },
+            { label: "Features",     href: "#features"      },
+            { label: "How it Works", href: "#how-it-works"  },
+            { label: "Contact",      href: "#contact"       },
           ].map((item) => (
             <a key={item.label} href={item.href}
-              className="text-blue-400 hover:text-blue-600 text-sm font-medium transition-colors">
+              className="text-gray-500 hover:text-gray-800 text-sm font-medium transition-colors">
               {item.label}
             </a>
           ))}
         </div>
 
-        {/* CTA buttons — changes based on auth state */}
+        {/* CTA */}
         <div className="hidden md:flex items-center gap-3">
           {loading ? (
-            // Skeleton while checking auth
-            <div className="w-24 h-8 bg-blue-100 rounded-xl animate-pulse" />
+            <div className="w-24 h-8 bg-gray-100 rounded-xl animate-pulse" />
           ) : isAuthenticated ? (
-            // Logged-in state
             <>
               <Link href="/dashboard"
-                className="text-blue-600 text-sm font-semibold hover:text-blue-700 transition-colors">
+                className="text-gray-600 text-sm font-semibold hover:text-gray-800 transition-colors">
                 Dashboard
               </Link>
-              <div className="flex items-center gap-2 pl-3 border-l border-blue-100">
-                {/* Avatar */}
-                <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold uppercase shadow">
-                  {user?.name?.charAt(0) ?? "?"}
-                </div>
-                <span className="text-blue-700 text-sm font-medium hidden lg:block">
+              <div className="flex items-center gap-2 pl-3 border-l border-gray-200">
+                {user?.avatar ? (
+                  <img src={user.avatar} alt={user.name} referrerPolicy="no-referrer"
+                    className="w-8 h-8 rounded-full object-cover ring-2 ring-gray-100 shadow" />
+                ) : (
+                  <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold shadow">
+                    {user?.name?.charAt(0) ?? "?"}
+                  </div>
+                )}
+                <span className="text-gray-700 text-sm font-medium hidden lg:block">
                   {user?.name?.split(" ")[0]}
                 </span>
                 <button onClick={() => logout()}
-                  className="text-blue-400 hover:text-red-500 text-sm font-medium transition-colors ml-1">
+                  className="text-gray-400 hover:text-red-500 text-sm font-medium transition-colors ml-1">
                   Sign out
                 </button>
               </div>
             </>
           ) : (
-            // Logged-out state
             <>
               <Link href="/login"
-                className="text-blue-600 text-sm font-semibold hover:text-blue-700 transition-colors">
+                className="text-gray-600 text-sm font-semibold hover:text-gray-800 transition-colors">
                 Log in
               </Link>
               <Link href="/signup"
@@ -90,7 +85,7 @@ export default function Navbar() {
         </div>
 
         {/* Mobile hamburger */}
-        <button className="md:hidden p-2 rounded-lg text-blue-600 hover:bg-blue-50 transition-colors"
+        <button className="md:hidden p-2 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors"
           onClick={() => setMenuOpen(!menuOpen)} aria-label="Toggle menu">
           {menuOpen ? (
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -106,37 +101,40 @@ export default function Navbar() {
 
       {/* Mobile menu */}
       {menuOpen && (
-        <div className="md:hidden bg-white/95 backdrop-blur-lg border-b border-blue-100 px-6 pb-4">
-          <div className="flex flex-col gap-3 pt-2">
+        <div className="md:hidden bg-white/98 backdrop-blur-lg border-b border-gray-100 px-6 pb-4 shadow-lg">
+          <div className="flex flex-col gap-1 pt-2">
             {[
-              { label: "Features", href: "#features" },
+              { label: "Features",     href: "#features"     },
               { label: "How it Works", href: "#how-it-works" },
-              { label: "Pricing", href: "#pricing" },
+              { label: "Contact",      href: "#contact"      },
             ].map((item) => (
               <a key={item.label} href={item.href}
-                className="text-blue-600 text-sm font-medium py-2 border-b border-blue-50"
+                className="text-gray-700 text-sm font-medium py-3 border-b border-gray-50 hover:text-blue-600 transition-colors"
                 onClick={() => setMenuOpen(false)}>
                 {item.label}
               </a>
             ))}
-            <div className="flex gap-3 pt-2">
+            <div className="flex gap-3 pt-3">
               {isAuthenticated ? (
                 <>
-                  <Link href="/dashboard" className="flex-1 text-center text-blue-600 text-sm font-semibold py-2 border border-blue-200 rounded-xl"
+                  <Link href="/dashboard"
+                    className="flex-1 text-center text-blue-600 text-sm font-semibold py-2.5 border border-blue-200 rounded-xl"
                     onClick={() => setMenuOpen(false)}>
                     Dashboard
                   </Link>
                   <button onClick={() => { logout(); setMenuOpen(false); }}
-                    className="flex-1 text-center bg-red-50 text-red-500 text-sm font-bold py-2 rounded-xl border border-red-100">
+                    className="flex-1 text-center bg-red-50 text-red-500 text-sm font-bold py-2.5 rounded-xl border border-red-100">
                     Sign out
                   </button>
                 </>
               ) : (
                 <>
-                  <Link href="/login" className="flex-1 text-center text-blue-600 text-sm font-semibold py-2 border border-blue-200 rounded-xl">
+                  <Link href="/login"
+                    className="flex-1 text-center text-gray-700 text-sm font-semibold py-2.5 border border-gray-200 rounded-xl">
                     Log in
                   </Link>
-                  <Link href="/signup" className="flex-1 text-center bg-blue-600 text-white text-sm font-bold py-2 rounded-xl">
+                  <Link href="/signup"
+                    className="flex-1 text-center bg-blue-600 text-white text-sm font-bold py-2.5 rounded-xl">
                     Get Started
                   </Link>
                 </>

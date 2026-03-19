@@ -19,7 +19,7 @@ interface AuthContextType {
   updateCurrency: (currency: "USD" | "KHR") => Promise<void>;
 }
 
-const PUBLIC_PATHS = ["/login", "/signup", "/forgot-password", "/join"];
+const PUBLIC_PATHS = ["/", "/login", "/signup", "/forgot-password", "/join"];
 const REDIRECT_KEY = "finset_auth_redirect";
 
 const AuthContext = createContext<AuthContextType | null>(null);

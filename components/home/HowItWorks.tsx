@@ -12,7 +12,7 @@ const steps: Step[] = [
   {
     num: "01",
     title: "Create Your Account",
-    desc: "Sign up in seconds. Choose your preferred language (English or ខ្មែរ) and set your base currency.",
+    desc: "Sign up in seconds with email or Google. Set your preferred currency and you're ready to go.",
   },
   {
     num: "02",
@@ -21,8 +21,8 @@ const steps: Step[] = [
   },
   {
     num: "03",
-    title: "Scan or Add Expenses",
-    desc: "Scan KHQR codes instantly or add expenses manually. FinSet auto-categorizes everything.",
+    title: "Log Your Expenses",
+    desc: "Add expenses manually by category, amount, and payment method. Supports both USD and KHR.",
   },
   {
     num: "04",
@@ -33,31 +33,22 @@ const steps: Step[] = [
 
 function StepCard({ step, index }: { step: Step; index: number }) {
   const { ref, inView } = useInView();
-
   return (
-    <div
-      ref={ref}
-      className="relative"
+    <div ref={ref} className="relative"
       style={{
         opacity: inView ? 1 : 0,
         transform: inView ? "translateY(0)" : "translateY(32px)",
         transition: `opacity 0.6s ease ${index * 120}ms, transform 0.6s ease ${index * 120}ms`,
-      }}
-    >
-      {/* Connector line to next step */}
+      }}>
       {index < steps.length - 1 && (
         <div className="hidden lg:block absolute top-6 left-[calc(100%-8px)] w-full h-px bg-gradient-to-r from-blue-200 to-transparent z-0" />
       )}
-
       <div className="relative z-10">
-        {/* Step number badge */}
         <div className="w-12 h-12 rounded-2xl bg-blue-600 text-white font-black text-lg flex items-center justify-center mb-4 shadow-lg shadow-blue-600/25 font-['Sora',sans-serif]">
           {step.num.replace("0", "")}
         </div>
-        <h3 className="text-blue-800 font-bold text-base mb-2 font-['Sora',sans-serif]">
-          {step.title}
-        </h3>
-        <p className="text-blue-400 text-sm leading-relaxed">{step.desc}</p>
+        <h3 className="text-gray-800 font-bold text-base mb-2 font-['Sora',sans-serif]">{step.title}</h3>
+        <p className="text-gray-500 text-sm leading-relaxed">{step.desc}</p>
       </div>
     </div>
   );
@@ -66,57 +57,27 @@ function StepCard({ step, index }: { step: Step; index: number }) {
 export default function HowItWorks() {
   return (
     <section id="how-it-works" className="py-24 bg-white relative overflow-hidden">
-      {/* Subtle dot grid background */}
-      <div
-        className="absolute inset-0 opacity-[0.02]"
-        style={{
-          backgroundImage: `radial-gradient(circle, #2563eb 1px, transparent 1px)`,
-          backgroundSize: "32px 32px",
-        }}
-      />
-
+      <div className="absolute inset-0 opacity-[0.025]"
+        style={{ backgroundImage: `radial-gradient(circle, #2563eb 1px, transparent 1px)`, backgroundSize: "32px 32px" }} />
       <div className="max-w-5xl mx-auto px-6 relative">
-        {/* Section header */}
         <div className="text-center mb-16">
-          <span className="text-blue-400 text-sm font-bold uppercase tracking-widest">
-            Simple Setup
-          </span>
-          <h2 className="text-4xl font-black text-blue-800 mt-3 font-['Sora',sans-serif]">
-            Up and Running
-            <br />
-            in 4 Steps
+          <span className="text-blue-600 text-sm font-bold uppercase tracking-widest">Simple Setup</span>
+          <h2 className="text-4xl font-black text-gray-800 mt-3 font-['Sora',sans-serif]">
+            Up and Running<br />in 4 Steps
           </h2>
-          <p className="text-blue-400 mt-4 max-w-lg mx-auto">
+          <p className="text-gray-500 mt-4 max-w-lg mx-auto text-sm leading-relaxed">
             Getting started with FinSet takes less than two minutes. Here's how it works.
           </p>
         </div>
-
-        {/* Steps grid */}
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
-          {steps.map((step, i) => (
-            <StepCard key={step.num} step={step} index={i} />
-          ))}
+          {steps.map((step, i) => <StepCard key={step.num} step={step} index={i} />)}
         </div>
-
-        {/* Bottom CTA nudge */}
         <div className="text-center mt-16">
-          <a
-            href="/signup"
-            className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold px-7 py-3.5 rounded-2xl transition-all duration-300 hover:shadow-xl hover:shadow-blue-600/30 hover:-translate-y-0.5 active:scale-95"
-          >
+          <a href="/signup"
+            className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold px-7 py-3.5 rounded-2xl transition-all duration-300 hover:shadow-xl hover:shadow-blue-600/30 hover:-translate-y-0.5 active:scale-95 text-sm">
             Get Started Free
-            <svg
-              className="w-4 h-4"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2.5}
-                d="M13 7l5 5m0 0l-5 5m5-5H6"
-              />
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7l5 5m0 0l-5 5m5-5H6" />
             </svg>
           </a>
         </div>

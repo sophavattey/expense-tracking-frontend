@@ -113,10 +113,7 @@ export default function LoginPage() {
             style={{ backgroundImage: "linear-gradient(white 1px, transparent 1px), linear-gradient(90deg, white 1px, transparent 1px)", backgroundSize: "40px 40px" }} />
           <MiniChart />
           <div className="relative z-10 p-10">
-            <Link href="/" className="inline-flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-xl bg-white/20 backdrop-blur flex items-center justify-center border border-white/30">
-                <Wallet size={18} className="text-white" strokeWidth={2} />
-              </div>
+            <Link href="/" className="inline-flex items-center">
               <span className="text-white font-black text-xl font-['Sora',sans-serif] tracking-tight">
                 Fin<span className="text-blue-200">Set</span>
               </span>
@@ -153,10 +150,7 @@ export default function LoginPage() {
           <div className="w-full max-w-[420px]">
 
             {/* Mobile logo */}
-            <div className="lg:hidden flex items-center gap-2 mb-8">
-              <div className="w-8 h-8 rounded-xl bg-blue-600 flex items-center justify-center">
-                <Wallet size={15} className="text-white" strokeWidth={2} />
-              </div>
+            <div className="lg:hidden flex items-center mb-8">
               <span className="text-gray-800 font-black text-xl font-['Sora',sans-serif]">
                 Fin<span className="text-blue-600">Set</span>
               </span>
