@@ -189,7 +189,7 @@ export default function PWAInstallPrompt() {
           <div className="flex-1 min-w-0">
             <div className="flex items-center justify-between mb-1">
               <p className="text-gray-800 font-black text-sm font-['Sora',sans-serif]">
-                Install My Luy
+                Install FinSet
               </p>
               <button
                 onClick={handleDismiss}
@@ -199,7 +199,7 @@ export default function PWAInstallPrompt() {
               </button>
             </div>
             <p className="text-gray-500 text-xs leading-relaxed mb-3">
-              Install My Luy on your home screen for quick access.
+              Install FinSet on your home screen for quick access.
             </p>
 
             <div className="flex gap-2">
