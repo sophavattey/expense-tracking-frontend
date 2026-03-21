@@ -27,13 +27,13 @@ function writeCookie(ctx: ActiveContext) {
 
 /* ─── Context type ──────────────────────────────────────────────── */
 interface GroupContextType {
-  activeContext:   ActiveContext;
-  isGroup:         boolean;           // shorthand: activeContext.type === "group"
-  groups:          Group[];           // all groups this user belongs to
-  loadingGroups:   boolean;
+  activeContext:    ActiveContext;
+  isGroup:          boolean;
+  groups:           Group[];
+  loadingGroups:    boolean;
   switchToPersonal: () => void;
-  switchToGroup:   (group: Group) => void;
-  refreshGroups:   () => Promise<void>;
+  switchToGroup:    (group: Group) => void;
+  refreshGroups:    () => Promise<void>;
 }
 
 const GroupContext = createContext<GroupContextType | null>(null);
@@ -49,19 +49,32 @@ export function GroupProvider({ children }: { children: ReactNode }) {
     setActiveContext(readCookie());
   }, []);
 
-  /* ── Fetch groups the user belongs to ── */
+  /* ── Fetch groups ── */
   const refreshGroups = useCallback(async () => {
     setLoadingGroups(true);
     try {
       const data = await apiFetch<Group[]>("/api/groups/mine");
       setGroups(data);
 
-      // If cookie points to a group that no longer exists, reset to personal
       const saved = readCookie();
+
+      // If active group no longer exists → reset to personal
       if (saved.type === "group" && !data.find(g => g.id === saved.groupId)) {
         const reset: ActiveContext = { type: "personal" };
         setActiveContext(reset);
         writeCookie(reset);
+        return;
+      }
+
+      // If still in a group → silently update members so banner + switcher stay fresh
+      if (saved.type === "group") {
+        const updatedGroup = data.find(g => g.id === saved.groupId);
+        if (updatedGroup) {
+          setActiveContext(prev => {
+            if (prev.type !== "group") return prev;
+            return { ...prev, groupMembers: updatedGroup.members };
+          });
+        }
       }
     } catch {
       setGroups([]);
@@ -70,7 +83,14 @@ export function GroupProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  // Initial fetch
   useEffect(() => { refreshGroups(); }, [refreshGroups]);
+
+  // Poll every 10s — keeps member list fresh when someone joins or leaves
+  useEffect(() => {
+    const id = setInterval(refreshGroups, 10_000);
+    return () => clearInterval(id);
+  }, [refreshGroups]);
 
   /* ── Switch helpers ── */
   const switchToPersonal = useCallback(() => {
