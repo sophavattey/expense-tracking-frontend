@@ -51,14 +51,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const stored   = sessionStorage.getItem(REDIRECT_KEY);
           const isPublic = PUBLIC_PATHS.some(p => pathname.startsWith(p));
           if (stored) {
-            // Consume stored redirect (e.g. invite link after OAuth)
             router.replace(popRedirect());
-          } else if (isPublic) {
-            // Authenticated but on public page (login, landing) — go to dashboard
-            // This handles mobile Safari which wipes sessionStorage after OAuth
+          } else if (isPublic && !pathname.startsWith("/join")) {
+            // Authenticated but on a public page — go to dashboard
+            // Exclude /join so an already-logged-in user visiting an invite link
+            // stays on the page and sees the confirm dialog
             router.replace("/dashboard");
           }
-          // else: already on a protected page — stay here
         }
       })
       .catch(() => {
